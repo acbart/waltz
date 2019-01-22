@@ -1,5 +1,6 @@
 waltz_cache.sqlite
 settings/
+courses/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

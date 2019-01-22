@@ -48,7 +48,7 @@ def identify_resource(resource_id):
 
 def push_resource(resource_id, format, source, course, ignore):
     ResourceType, name = identify_resource(resource_id)
-    
+    ResourceType.push(source, course, name)
 
 UNRESOLVED_FLAG = "# Unresolved changes!"
 def pull_resource(resource_id, format, destination, course, ignore):
@@ -56,29 +56,7 @@ def pull_resource(resource_id, format, destination, course, ignore):
     If resource_id is a number
     '''
     ResourceType, name = identify_resource(resource_id)
-    new_resource = ResourceType.pull(course, name)
-    resource_filename = new_resource.get_safe_filename(destination)
-    backups
-    if format == "yaml":
-        ensure_dir(resource_filename)
-        if os.path.exists(resource_filename):
-            with open(resource_filename, 'r') as original_version:
-                old_contents = original_version.read()
-                if old_contents.startswith(UNRESOLVED_FLAG):
-                    log("Unresolved changes in", resource_id)
-                    log("Merge before pull again!")
-                    return
-                old_resource = ResourceType.from_yaml(old_contents)
-            differences, unresolved = new_resource.diff(old_resource)
-        with open(resource_filename, 'w') as out:
-            if not unresolved:
-                new_resource = new_resource.to_yaml()
-                walk_tree(new_resource)
-                yaml.dump(new_resource, out)
-            else:
-                differences.yaml_set_start_comment("Unresolved changes!")
-                walk_tree(differences)
-                yaml.dump(differences, out)
+    new_resource = ResourceType.pull(destination, course, name)
 
 def main(args):
     global quiet
@@ -114,4 +92,10 @@ def main(args):
             log(sum(map(bool, successes)), "were successful.")
         else:
             pull_resource(args.id, args.format, destination,
+                          args.course, args.ignore)
+    if args.verb == 'push':
+        if args.id is None:
+            pass
+        else:
+            push_resource(args.id, args.format, destination,
                           args.course, args.ignore)

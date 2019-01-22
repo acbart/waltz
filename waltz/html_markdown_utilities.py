@@ -5,7 +5,7 @@ from markdown import markdown
 # h2m
 
 html_to_markdown = HTML2Text()
-html_to_markdown.single_line_break=True
+html_to_markdown.single_line_break= False
 html_to_markdown._kept_classes = []
 html_to_markdown._skip_a_class_check = False
 
@@ -50,6 +50,7 @@ def h2m(html):
     in_fenced_code = False
     skip = 0
     modified = []
+    print(repr(m))
     for line in m.split("\n"):
         if line.lstrip().startswith("```"):
             in_fenced_code = not in_fenced_code

@@ -1,6 +1,7 @@
 import os
 import re
 from datetime import datetime
+from textwrap import indent
 
 def ensure_dir(file_path):
     directory = os.path.dirname(file_path)
@@ -20,3 +21,6 @@ def make_safe_filename(name):
 
 def make_datetime_filename():
     return datetime.now().strftime('%Y-%b-%d_%H-%M-%S')
+
+def indent4(text):
+    return indent(text, '    ')

@@ -1,4 +1,3 @@
-id: 92739
 title: '#32) Quiz: For Loops'
 html_url: https://vt.instructure.com/courses/66476/quizzes/92739
 mobile_url: https://vt.instructure.com/courses/66476/quizzes/92739?force_user=1&persist_headless=1
@@ -24,11 +23,10 @@ due_at: '2018-03-03T04:59:00Z'
 unlock_at: '2018-02-23T20:00:00Z'
 lock_at: '2018-03-17T03:59:00Z'
 published: true
-assignment_id: 356593
 questions:
 - question_name: Loop Components
   question_type: matching_question
-  question_text: |-
+  question_text: |
     Identify each of the components of the `for` loop:  
     ![18-1-quiz-loop-
     parts.png](https://vt.instructure.com/files/4813421/download?verifier=1kJNW07c5mDNKuEblSaAWICyLQZG9hdQym0cHzBy&wrap=1)
@@ -36,16 +34,52 @@ questions:
   correct_comments: ''
   incorrect_comments: ''
   neutral_comments:
+  correct_comments_html: ''
+  incorrect_comments_html: ''
+  neutral_comments_html: ''
+  answers:
+  - text: '1'
+    match_id: 6206
+    left: '1'
+    right: For keyword
+  - text: '2'
+    match_id: 4214
+    left: '2'
+    right: Iteration Variable
+  - text: '3'
+    match_id: 87
+    left: '3'
+    right: In keyword
+  - text: '4'
+    match_id: 7281
+    left: '4'
+    right: Body
+  - text: '5'
+    match_id: 6703
+    left: '5'
+    right: List Variable
+  - text: '6'
+    match_id: 4214
+    left: '6'
+    right: Iteration Variable
 - question_name: Colon Usage
   question_type: short_answer_question
-  question_text: Type the character used at the end of the first line of a `for` loop.
+  question_text: |
+    Type the character used at the end of the first line of a `for` loop.
   points_possible: 1.0
   correct_comments: ''
   incorrect_comments: What symbol appears directly after the List Variable?
   neutral_comments:
+  correct_comments_html: ''
+  incorrect_comments_html: ''
+  neutral_comments_html: ''
+  answers:
+  - text: ':'
+    comments: ''
+    weight: 100
 - question_name: Iteration Variable Type
   question_type: multiple_choice_question
-  question_text: |-
+  question_text: |
     What is the type of the Iteration Variable in this code?
 
     ```python
@@ -57,17 +91,69 @@ questions:
   correct_comments: ''
   incorrect_comments: ''
   neutral_comments:
+  correct_comments_html: ''
+  incorrect_comments_html: ''
+  neutral_comments_html: ''
+  answers:
+  - text: List
+    comments: This is the type of the List Variable, but not the type of the Iteration
+      Variable. Remember, the Iteration Variable will have the subtype of the List
+      Variable, not its type.
+    weight: 0
+  - text: String
+    weight: 100
+  - text: Integer
+    comments: No, this is not the type of the Iteration Variable. The Iteration Variable's
+      type is the subtype of the List Variable.
+    weight: 0
+  - text: None
+    comments: No, the Iteration Variable definitely has a type.
+    weight: 0
 - question_name: Loop Facts
   question_type: multiple_answers_question
-  question_text: 'Mark each of the following statements about `for` loops that are
-    true:'
+  question_text: |
+    Mark each of the following statements about `for` loops that are true:
   points_possible: 5.0
   correct_comments: ''
   incorrect_comments: ''
   neutral_comments:
+  correct_comments_html: ''
+  incorrect_comments_html: ''
+  neutral_comments_html: ''
+  answers:
+  - text: The body of a for loop will have one statement for each element of the iteration
+      list.
+    comments: A for loop can have any number of statements, and any number of items
+      in the Iteration List. It is possible these two numbers will be the same, but
+      it's not required.
+    comments_html: A <code>for</code> loop can have any number of statements, and
+      any number of items in the Iteration List. It is possible these two numbers
+      will be the same, but it's not required.
+    weight: 0
+  - text: for Loops and Functions are basically the same thing
+    comments: Although they have similarities (e.g,. the colon, the fact that they
+      both affect control flow), there are many differences between loops and functions.
+      Primarily, Functions are a way to change some inputs into some outputs; Loops
+      are a way to repeatedly perform some actions for each element of a list.
+    weight: 0
+  - text: The Iteration Variable will take on each value of the List Variable, one
+      at a time.
+    weight: 100
+  - text: for Loops always execute the body four times, which is where they get their
+      name.
+    comments: This statement is not true. The word "for" in the name of for loops
+      gets its name from the preposition "for", not the number "four". When read aloud,
+      the idea is something like, "For each element of the list...".
+    comments_html: This statement is not true. The word "for" in the name of <code>for</code>
+      loops gets its name from the preposition "for", not the number "four". When
+      read aloud, the idea is something like, "For each element of the list...".
+    weight: 0
+  - text: Like an if statement and a Function Call, the for Loop might cause the execution
+      to not follow the order of lines.
+    weight: 100
 - question_name: Loop Tracing
   question_type: fill_in_multiple_blanks_question
-  question_text: |-
+  question_text: |
     Trace the values of this code. If a variable is not yet defined, put an "X"
     (without quotes).
 
@@ -97,3 +183,37 @@ questions:
     \ Know what value grade should take on with respect to grades. Which line changes\
     \ its value? If you don't seem to be making progress, don't be afraid to get help!"
   neutral_comments:
+  correct_comments_html: ''
+  incorrect_comments_html: |
+    This one is long and tricky! Here are some recommendations:
+    
+      1. Do the calculations on paper or double check each step in IPython or BlockPy.
+      2. Know what value `grade` should take on with respect to `grades`. Which line changes its value?
+      3. If you don't seem to be making progress, don't be afraid to get help!
+  neutral_comments_html: ''
+  answers:
+    line5: '5'
+    total2: '0'
+    grade2: X
+    grade3: '10'
+    total3: '0'
+    grade4: '10'
+    total4: '0'
+    grade5: '10'
+    adjusted5: '20'
+    total5: '20'
+    line6: '3'
+    grades6:
+    - '[10,20]'
+    - '[10, 20]'
+    - '[10 , 20]'
+    grade6: '20'
+    adjusted6: '20'
+    total6: '20'
+    line7: '4'
+    grade7: '20'
+    adjusted7: '30'
+    total7: '20'
+    line8: '5'
+    grade8: '20'
+    adjusted8: '30'
