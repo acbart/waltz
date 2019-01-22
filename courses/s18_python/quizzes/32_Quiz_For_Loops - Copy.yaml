@@ -1,0 +1,28 @@
+access_code: null
+allowed_attempts: -1
+assignment_group_id: 101215
+assignment_id: 356593
+cant_go_back: false
+description: ''
+due_at: '2018-03-03T04:59:00Z'
+hide_correct_answers_at: null
+hide_results: null
+html_url: https://vt.instructure.com/courses/66476/quizzes/92739
+id: 92739
+ip_filter: null
+lock_at: '2018-03-17T03:59:00Z'
+mobile_url: https://vt.instructure.com/courses/66476/quizzes/92739?force_user=1&persist_headless=1
+one_question_at_a_time: false
+one_time_results: false
+points_possible: 21.0
+published: true
+quiz_type: assignment
+scoring_policy: keep_highest
+show_correct_answers: false
+show_correct_answers_at: null
+show_correct_answers_last_attempt: false
+shuffle_answers: true
+time_limit: null
+title: "#32) Quiz: For Loops"
+unlock_at: '2018-02-23T20:00:00Z'
+

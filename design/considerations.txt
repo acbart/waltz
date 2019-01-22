@@ -1,0 +1,9 @@
+Where do misconceptions live? Are they tied to learning objectives - or assessment questions?
+    Tied tightly assessment question -> loosely to learning objectives
+    Multiple misconceptions can be reused across assessment questions
+    So they are top-level elements, with an independent existence (but obviously can be referenced)
+Where does evaluation live?
+    Are they alongside the resources in the repository?
+        What happens when I modify/delete a resource?
+    Do they live seperate?
+    
