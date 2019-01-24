@@ -886,7 +886,7 @@ class Quiz(Resource):
         payload = {'order': []}
         for position, question in enumerate(self.questions):
             payload['order'].append({
-                'id': name_map[question['question_name']],
+                'id': name_map[question.question_name],
                 'type': 'question'
             })
         post('quizzes/{qid}/reorder', data=payload)
