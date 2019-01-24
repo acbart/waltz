@@ -883,13 +883,20 @@ class Quiz(Resource):
         questions = get('quizzes/{qid}/questions/'.format(qid=quiz_id),
                         course=course.course_name, all=True)
         name_map = {q['question_name']: q['id'] for q in questions}
+        #payload = {}
+        #for position, question in enumerate(self.questions):
+        #    base = 'order[]'
+        #    payload[base+'[id]'] = str(name_map[question.question_name])
+        #    payload[base+'[type]'] = 'question'
+        #pprint(payload)
         payload = {'order': []}
-        for position, question in enumerate(self.questions):
+        for question in self.questions:
             payload['order'].append({
-                'id': name_map[question.question_name],
-                'type': 'question'
+                'type': 'question',
+                'id': str(name_map[question.question_name])
             })
-        post('quizzes/{qid}/reorder', data=payload)
+        pprint(payload)
+        print(post('quizzes/{}/reorder'.format(quiz_id), json=payload))
     
     def to_json(self, course, resource_id):
         ''' Suitable for PUT request on API'''

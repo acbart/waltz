@@ -48,12 +48,18 @@ def get_setting(setting, course=None):
         return defaults[setting]
     raise Exception("Course not found in settings.yaml: {course}".format(course=course))
     
-def _canvas_request(verb, command, course, data, all, params):
+def _canvas_request(verb, command, course, data, all, params, json):
     try:
         if data is None:
             data = {}
         if params is None:
             params = {}
+        headers = {}
+        if json is not None:
+            data = None
+            headers['Authorization'] = "Bearer "+get_setting('canvas-token')
+        else:
+            data['access_token'] = get_setting('canvas-token')
         if course == 'default':
             course = get_setting('course')
         next_url = get_setting('canvas-url', course=course)
@@ -61,34 +67,35 @@ def _canvas_request(verb, command, course, data, all, params):
             course_id = courses[course]['id']
             next_url += 'courses/{course_id}/'.format(course_id=course_id)
         next_url += command
-        data['access_token'] = get_setting('canvas-token')
         if all:
             data['per_page'] = 100
             final_result = []
             while True:
-                response = verb(next_url, data=data, params=params)
+                response = verb(next_url, data=data, params=params, json=json, headers=headers)
                 final_result += response.json()
                 if 'next' in response.links:
                     next_url = response.links['next']['url']
                 else:
                     return final_result
         else:
-            response = verb(next_url, data=data, params=params)
+            response = verb(next_url, data=data, params=params, json=json, headers=headers)
+            if response.status_code == 204:
+                return response
             return response.json()
     except json.decoder.JSONDecodeError:
         raise Exception("{}\n{}".format(response, next_url))
     
-def get(command, course='default', data=None, all=False, params=None):
-    return _canvas_request(requests.get, command, course, data, all, params)
+def get(command, course='default', data=None, all=False, params=None, json=None):
+    return _canvas_request(requests.get, command, course, data, all, params, json)
     
-def post(command, course='default', data=None, all=False, params=None):
-    return _canvas_request(requests.post, command, course, data, all, params)
+def post(command, course='default', data=None, all=False, params=None, json=None):
+    return _canvas_request(requests.post, command, course, data, all, params, json)
     
-def put(command, course='default', data=None, all=False, params=None):
-    return _canvas_request(requests.put, command, course, data, all, params)
+def put(command, course='default', data=None, all=False, params=None, json=None):
+    return _canvas_request(requests.put, command, course, data, all, params, json)
     
-def delete(command, course='default', data=None, all=False, params=None):
-    return _canvas_request(requests.delete, command, course, data, all, params)
+def delete(command, course='default', data=None, all=False, params=None, json=None):
+    return _canvas_request(requests.delete, command, course, data, all, params, json)
 
 def progress_loop(progress_id, DELAY=3):
     attempt = 0
