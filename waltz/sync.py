@@ -26,7 +26,7 @@ from waltz.canvas_tools import get_setting, get_courses, download_file
 from waltz.canvas_tools import from_canvas_date, to_canvas_date
 from waltz.canvas_tools import yaml_load, load_settings
 from waltz.utilities import ensure_dir
-from waltz.resources import RESOURCE_CATEGORIES, Quiz, WaltzException
+from waltz.resources import RESOURCE_CATEGORIES, ResourceID, WaltzException, Course
     
 quiet = True
 def log(*args):
@@ -38,25 +38,32 @@ def log(*args):
 def download_all_resources(format, filename, course, ignore):
     quizzes = get('quizzes', all=True, course=course)
 
-def identify_resource(resource_id):
-    category, name = resource_id.split("/")
-    category = category.lower()
-    if category not in RESOURCE_CATEGORIES:
-        raise WaltzException("Category not found: "+resource_id)
-    ResourceType = RESOURCE_CATEGORIES[category]
-    return ResourceType, name
-
-def push_resource(resource_id, format, source, course, ignore):
-    ResourceType, name = identify_resource(resource_id)
-    ResourceType.push(source, course, name)
+def push_resource(resource_id, format, source, course_name, ignore):
+    course = Course(source, course_name)
+    resource_id = ResourceID(course, resource_id)
+    # Make a backup of the canvas version
+    json_resource = course.pull(resource_id)
+    resource_id.resource_type.extra_pull(course, resource_id)
+    course.backup_json(resource_id, json_resource)
+    # Load the local copy and push it to the server
+    resource = course.from_disk(resource_id)
+    json_resource = course.to_json(resource_id, resource)
+    course.push(resource_id, json_resource)
+    resource.extra_push(course, resource_id)
 
 UNRESOLVED_FLAG = "# Unresolved changes!"
-def pull_resource(resource_id, format, destination, course, ignore):
+def pull_resource(resource_id, format, destination, course_name, ignore):
     '''
     If resource_id is a number
     '''
-    ResourceType, name = identify_resource(resource_id)
-    new_resource = ResourceType.pull(destination, course, name)
+    course = Course(destination, course_name)
+    resource_id = ResourceID(course, resource_id)
+    # Make a backup of the local version
+    course.backup_resource(resource_id)
+    # Save the version from the server
+    json_resource = course.pull(resource_id)
+    resource = course.from_json(resource_id, json_resource)
+    course.to_disk(resource_id, resource)
 
 def main(args):
     global quiet

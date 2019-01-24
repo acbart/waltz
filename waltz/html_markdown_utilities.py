@@ -46,11 +46,12 @@ def handle_custom_tags(self, tag, attrs, start):
 html_to_markdown.tag_callback = handle_custom_tags
 
 def h2m(html):
+    if not html:
+        return ""
     m = html_to_markdown.handle(html)
     in_fenced_code = False
     skip = 0
     modified = []
-    print(repr(m))
     for line in m.split("\n"):
         if line.lstrip().startswith("```"):
             in_fenced_code = not in_fenced_code
@@ -63,7 +64,7 @@ def h2m(html):
             modified.append(line)
         else:
             modified.append(line)
-    return "\n".join(modified)
+    return ("\n".join(modified)).strip()
   
 ## Markdown to HTML
 # m2h
