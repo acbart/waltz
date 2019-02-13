@@ -6,25 +6,50 @@ from markdown import markdown
 
 html_to_markdown = HTML2Text()
 html_to_markdown.single_line_break= False
-html_to_markdown._kept_classes = []
+html_to_markdown.skip_internal_links = False
 html_to_markdown._skip_a_class_check = False
+html_to_markdown._class_stack = []
 
 def handle_custom_tags(self, tag, attrs, start):
     if self._skip_a_class_check:
         return False
-    if tag == "a":
-        if start and "class" in attrs and attrs["class"].startswith("icon-"):
-            self._kept_classes.append(attrs["class"])
-        elif start:
-            self._kept_classes.append(None)
+    if start:
+        self._class_stack.append(attrs)
+    else:
+        attrs = self._class_stack.pop()
+    if tag in ['i'] and not self.ignore_emphasis:
+        if 'class' in attrs:
+            icon = attrs['class']
+            if icon.startswith('icon-'):
+                if start:
+                    self.o("&"+icon+";")
+                    return True
+                else:
+                    return True
+    if tag == "iframe":
+        if start:
+            self.o("<iframe {}>".format(" ".join(
+                ['{}="{}"'.format(k, v) for k,v in
+                 attrs.items()]
+            )))
+        else:
+            self.o("</iframe>")
+    if tag == "p" and 'class' in attrs:
         if not start:
-            icon = self._kept_classes.pop()
-            if icon is not None:
-                self._skip_a_class_check = True
-                self.handle_tag(tag, attrs, start)
-                self._skip_a_class_check = False
-                self.o("{: class="+icon+"}")
-                return True
+            self._skip_a_class_check = True
+            self.handle_tag(tag, attrs, start)
+            self._skip_a_class_check = False
+            classes= " ".join(["."+cls for cls in attrs['class'].split(" ")])
+            self.outtextf("\n{: "+classes+"}")
+    if tag == "a":
+        if not start and 'class' in attrs:
+            # Clumsy hack to prevent rechecking this tag!
+            self._skip_a_class_check = True
+            self.handle_tag(tag, attrs, start)
+            self._skip_a_class_check = False
+            classes= " ".join(["."+cls for cls in attrs['class'].split(" ")])
+            self.o("{: "+classes+"}")
+            return True
     if tag == "pre":
         if start:
             self.out("\n```")
@@ -78,13 +103,61 @@ my_extras = {
     'header-ids': True,
     'tables': True
 }
-def markdowner(text):
+def markdowner(text, extension_directory='waltz.'):
     return markdown(text, extensions=[
         'fenced_code', 'attr_list',
         'tables', 'codehilite',
+        extension_directory+'iconfonts:IconFontsExtension',
+        extension_directory+'headerid:HeaderIdExtension',
+        extension_directory+'decorate_tables:TableDecoratorExtension'
     ], extension_configs={
         'codehilite': {
         'noclasses': True
     }})
 
 m2h = markdowner
+
+if __name__ == '__main__':
+    import os
+    import argparse
+    from glob import glob
+    
+    parser = argparse.ArgumentParser(description='Convert html/markdown')
+    parser.add_argument('input', help='What file to read as input')
+    parser.add_argument('--output', '-o', help='Where to store file (defaults to same folder as input).')
+    parser.add_argument('--roundtrip', '-r', help='Whether to roundtrip the files once (e.g., HTML -> Markdown -> HTML -> Markdown', action='store_true', default=False)
+    args = parser.parse_args()
+    
+    if '*' in args.input:
+        input_paths = glob(args.input, recursive=True)
+    else:
+        input_paths = [args.input]
+    
+    for input_path in input_paths:
+    
+        path, currently = os.path.splitext(input_path)
+        
+        if currently[1:] not in ('html', 'md'):
+            raise ValueError("Needed either .html or .md, but got: "+input_path)
+        
+        m2h = lambda contents: markdowner(contents, extension_directory='')
+        conversion = h2m if currently[1:] == 'html' else m2h
+        convert_back = m2h if currently[1:] == 'html' else h2m
+        new_extension = '.md' if currently[1:] == 'html' else '.html'
+
+        if args.output:
+            output_path = args.output
+        else:
+            output_path = path+new_extension
+            print(output_path)
+
+        with open(input_path) as input_file:
+            contents = input_file.read()
+        
+        contents = conversion(contents)
+        
+        if args.roundtrip:
+            contents = conversion(convert_back(contents))
+        
+        with open(output_path, 'w') as output_file:
+            output_file.write(contents)

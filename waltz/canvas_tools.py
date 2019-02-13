@@ -1,6 +1,8 @@
 import json
 import requests
 import os, sys
+import time
+from datetime import datetime
 
 from waltz.yaml_setup import yaml
 
@@ -124,6 +126,7 @@ def download_file(url, destination):
     f.close()
 
 CANVAS_DATE_STRING = "%Y-%m-%dT%H:%M:%SZ"
+
 def from_canvas_date(d1):
     return datetime.strptime(d1, CANVAS_DATE_STRING)
 
