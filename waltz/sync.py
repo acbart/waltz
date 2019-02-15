@@ -53,11 +53,10 @@ def push_resource(resource_id, format, source, course_name, ignore):
     # Load the local copy and push it to the server
     resource = course.from_disk(resource_id)
     json_resource = course.to_json(resource_id, resource)
-    pprint(json_resource)
+    #pprint(json_resource)
     course.push(resource_id, json_resource)
     resource.extra_push(course, resource_id)
 
-UNRESOLVED_FLAG = "# Unresolved changes!"
 def pull_resource(resource_id, format, destination, course_name, ignore):
     '''
     If resource_id is a number
@@ -71,6 +70,17 @@ def pull_resource(resource_id, format, destination, course_name, ignore):
     json_resource = course.pull(resource_id)
     resource = course.from_json(resource_id, json_resource)
     course.to_disk(resource_id, resource)
+    
+def publicize_resource(resource_id, format, destination, course_name, ignore):
+    if isinstance(course_name, str):
+        course = Course(destination, course_name)
+    else:
+        course = course_name
+    resource_id = ResourceID(course, resource_id)
+    # Find the resource on disk
+    resource = course.from_disk(resource_id)
+    public_resource = course.to_public(resource_id, resource)
+    course.publicize(resource_id, public_resource)
     
 def build_from_template(path, destination, course_name, ignore):
     if isinstance(course_name, str):
@@ -145,3 +155,6 @@ def main(args):
                           args.course, args.ignore)
     if args.verb == 'build':
         build_from_template(args.id, destination, args.course, args.ignore)
+    if args.verb == 'publicize':
+        publicize_resource(args.id, args.format, destination,
+                        args.course, args.ignore)

@@ -16,7 +16,8 @@ from waltz.yaml_setup import yaml
 from waltz.canvas_tools import get, put, post, delete
 
 from waltz.utilities import (ensure_dir, make_safe_filename, indent4,
-                             make_datetime_filename)
+                             make_datetime_filename,
+                             to_friendly_date, from_friendly_date)
 from waltz.resources import Resource
 
 class QuizQuestion(Resource):
@@ -37,6 +38,18 @@ class QuizQuestion(Resource):
             return False
         else:
             return vars(self) == vars(other)
+            
+    def to_public(self, force=False):
+        if self.bank_source and not force:
+            return self.question_name
+        result = CommentedMap()
+        result['question_name'] = self.question_name
+        result['question_type'] = self.question_type
+        result['question_text'] = h2m(self.question_text)
+        if self.quiz_group_id:
+            result['quiz_group_id'] = self.quiz_group_id
+        result['points_possible'] = self.points_possible
+        return result
     
     def to_disk(self, force=False):
         if self.bank_source and not force:
@@ -184,6 +197,14 @@ class MultipleChoiceQuestion(QuizQuestion):
             result['answers'].append(a)
         return result
     
+    def to_public(self, force=False):
+        result = QuizQuestion.to_public(self, force)
+        result['answers'] = [
+            self._get_first_field(answer, 'html', 'text', convert=h2m)
+            for answer in self.answers
+        ]
+        return result
+    
     @classmethod
     def _custom_from_disk(cls, yaml_data):
         yaml_data['answers'] = [
@@ -217,6 +238,9 @@ class TrueFalseQuestion(QuizQuestion):
             elif comment:
                 result['false_comment'] = comment
         return result
+    
+    def to_public(self, force=False):
+        return QuizQuestion.to_public(self, force)
     
     @classmethod
     def _custom_from_disk(cls, yaml_data):
@@ -253,6 +277,9 @@ class ShortAnswerQuestion(QuizQuestion):
             result['answers'].append(a)
         return result
     
+    def to_public(self, force=False):
+        return QuizQuestion.to_public(self, force)
+    
     @classmethod
     def _custom_from_disk(cls, yaml_data):
         yaml_data['answers'] = [
@@ -287,6 +314,9 @@ class FillInMultipleBlanks(QuizQuestion):
                 a['comment'] = comment
             result['answers'][blank_id].append(a)
         return result
+    
+    def to_public(self, force=False):
+        return QuizQuestion.to_public(self, force)
     
     @classmethod
     def _custom_from_disk(cls, yaml_data):
@@ -325,6 +355,14 @@ class MultipleAnswersQuestion(QuizQuestion):
             if comment:
                 a['comment'] = comment
             result['answers'].append(a)
+        return result
+    
+    def to_public(self, force=False):
+        result = QuizQuestion.to_public(self, force)
+        result['answers'] = [
+            self._get_first_field(answer, 'html', 'text', convert=h2m)
+            for answer in self.answers
+        ]
         return result
     
     @classmethod
@@ -368,6 +406,16 @@ class MultipleDropDownsQuestion(QuizQuestion):
             result['answers'][blank_id].append(a)
         return result
     
+    def to_public(self, force=False):
+        result = QuizQuestion.to_public(self, force)
+        result['answers'] = CommentedMap()
+        for answer in self.answers:
+            blank_id = answer['blank_id']
+            if blank_id not in result['answers']:
+                result['answers'][blank_id] = []
+            result['answers'][blank_id].append(answer['text'])
+        return result
+    
     @classmethod
     def _custom_from_disk(cls, yaml_data):
         yaml_data['answers'] = [
@@ -406,6 +454,13 @@ class MatchingQuestions(QuizQuestion):
             elif 'comments_html' in answer and answer['comments_html']:
                 a['comment'] = h2m(answer['comments_html'])
             result['answers'].append(a)
+        return result
+    
+    def to_public(self, force=False):
+        result = QuizQuestion.to_public(self, force)
+        result['answers'] = CommentedMap()
+        result['answers']['lefts'] = list(sorted(set([ answer['left'] for answer in self.answers])))
+        result['answers']['rights'] = list(sorted(set([ answer['right'] for answer in self.answers])))
         return result
     
     @classmethod
@@ -452,6 +507,9 @@ class NumericalQuestion(QuizQuestion):
             result['answers'].append(a)
         return result
     
+    def to_public(self, force=False):
+        return QuizQuestion.to_public(self, force)
+    
     @classmethod
     def _custom_from_disk(cls, yaml_data):
         answers = []
@@ -497,6 +555,9 @@ class EssayQuestion(QuizQuestion):
     def to_disk(self, force=False):
         return QuizQuestion.to_disk(self, force)
     
+    def to_public(self, force=False):
+        return QuizQuestion.to_public(self, force)
+    
     @classmethod
     def _custom_from_disk(cls, yaml_data):
         return yaml_data
@@ -509,6 +570,9 @@ class TextOnlyQuestion(QuizQuestion):
 
     def to_disk(self, force=False):
         return QuizQuestion.to_disk(self, force)
+    
+    def to_public(self, force=False):
+        return QuizQuestion.to_public(self, force)
     
     @classmethod
     def _custom_from_disk(cls, yaml_data):
@@ -552,9 +616,9 @@ class Quiz(Resource):
         result['settings']['allowed_attempts'] = self.allowed_attempts
         result['settings']['scoring_policy'] = self.scoring_policy
         result['settings']['timing'] = CommentedMap()
-        result['settings']['timing']['due_at'] = self.due_at
-        result['settings']['timing']['unlock_at'] = self.unlock_at
-        result['settings']['timing']['lock_at'] = self.lock_at
+        result['settings']['timing']['due_at'] = to_friendly_date(self.due_at)
+        result['settings']['timing']['unlock_at'] = to_friendly_date(self.unlock_at)
+        result['settings']['timing']['lock_at'] = to_friendly_date(self.lock_at)
         result['settings']['secrecy'] = CommentedMap()
         result['settings']['secrecy']['one_question_at_a_time'] = self.one_question_at_a_time
         result['settings']['secrecy']['shuffle_answers'] = self.shuffle_answers
@@ -571,6 +635,29 @@ class Quiz(Resource):
         if self.ip_filter:
             result['settings']['secrecy']['ip_filter'] = self.ip_filter
         result['questions'] = [q.to_disk() for q in self.questions]
+        return result
+    
+    def to_public(self, resource_id):
+        result = CommentedMap()
+        result['title'] = self.title
+        result['description'] = h2m(self.description)
+        result['settings'] = CommentedMap()
+        result['settings']['quiz_type'] = self.quiz_type
+        result['settings']['points_possible'] = self.points_possible
+        result['settings']['allowed_attempts'] = self.allowed_attempts
+        result['settings']['scoring_policy'] = self.scoring_policy
+        result['settings']['secrecy'] = CommentedMap()
+        result['settings']['secrecy']['one_question_at_a_time'] = self.one_question_at_a_time
+        result['settings']['secrecy']['shuffle_answers'] = self.shuffle_answers
+        result['settings']['secrecy']['time_limit'] = self.time_limit
+        result['settings']['secrecy']['cant_go_back'] = self.cant_go_back
+        result['settings']['secrecy']['show_correct_answers'] = self.show_correct_answers
+        result['settings']['secrecy']['show_correct_answers_last_attempt'] = self.show_correct_answers_last_attempt
+        result['settings']['secrecy']['show_correct_answers_at'] = self.show_correct_answers_at
+        result['settings']['secrecy']['hide_correct_answers_at'] = self.hide_correct_answers_at
+        result['settings']['secrecy']['hide_results'] = self.hide_results
+        result['settings']['secrecy']['one_time_results'] = self.one_time_results
+        result['questions'] = [q.to_public() for q in self.questions]
         return result
     
     @classmethod
@@ -655,6 +742,9 @@ class Quiz(Resource):
         yaml_data.setdefault('access_code', '')
         yaml_data.setdefault('ip_filter', '')
         yaml_data['html_url'] = yaml_data.pop('url')
+        yaml_data['due_at'] = from_friendly_date(yaml_data['due_at'])
+        yaml_data['unlock_at'] = from_friendly_date(yaml_data['unlock_at'])
+        yaml_data['lock_at'] = from_friendly_date(yaml_data['lock_at'])
         # Load in the questions
         questions = yaml_data.pop('questions')
         questions = [QuizQuestion.from_disk(course, question, resource_id)

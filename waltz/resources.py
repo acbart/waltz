@@ -6,6 +6,7 @@ import gzip
 import json
 from collections import OrderedDict
 from pprint import pprint
+from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -151,7 +152,6 @@ class Course:
     
     def to_disk(self, resource_id, resource):
         resource_data = resource.to_disk(resource_id)
-        print(resource_data)
         walk_tree(resource_data)
         # Make a backup of the local version
         backed_up = self.backup_resource(resource_id, resource_data)
@@ -190,6 +190,9 @@ class Course:
     def to_json(self, resource_id, resource):
         return resource.to_json(self, resource_id)
     
+    def to_public(self, resource_id, resource):
+        return resource.to_public(resource_id)
+    
     def push(self, resource_id, json_data):
         if resource_id.canvas_data is True:
             id = None
@@ -198,6 +201,17 @@ class Course:
         rtype = resource_id.resource_type
         resource_id.canvas_data =  rtype.put_on_canvas(self.course_name, id, json_data)
         resource_id._parse_canvas_data()
+    
+    def publicize(self, resource_id, public_data):
+        walk_tree(public_data)
+        path = str(Path(resource_id.path).with_suffix('.public.yaml'))
+        ensure_dir(path)
+        if path.endswith('.yaml'):
+            with open(path, 'wb') as out:
+                yaml.dump(public_data, out)
+        else:
+            with open(path, 'w') as out:
+                out.write(public_data)
     
     def backup_json(self, resource_id, json_data):
         resource_path = resource_id.resource_type.identify_filename(resource_id.filename)

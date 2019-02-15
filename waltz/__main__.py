@@ -2,7 +2,7 @@ import argparse
 import waltz.sync
 
 parser = argparse.ArgumentParser(description='Sync resources')
-parser.add_argument('verb', choices=['pull', 'push', 'build'])
+parser.add_argument('verb', choices=['pull', 'push', 'build', 'publicize'])
 parser.add_argument('--course', '-c', help='The specific course to perform operations on. Should be a valid course label, not the ID')
 parser.add_argument('--settings', '-s', help='The settings file to use. Defaults to "settings.yaml". If the file does not exist, it will be created.', default='settings/settings.yaml')
 parser.add_argument('--id', '-i', help='The specific resource ID to manipulate. If not specified, all resources are used', default=None)

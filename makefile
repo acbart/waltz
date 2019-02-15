@@ -26,3 +26,9 @@ bundle_upload:
 	python waltz push --course s19_cisc108 --settings settings/ud.yaml -d C:/Users/acbart/Projects/cisc108/cisc108-python/ -x -i "pages/$(S)Slides $(NAME)"
 	python waltz build --course s19_cisc108 --settings settings/ud.yaml -d C:/Users/acbart/Projects/cisc108/cisc108-python/ -x -i "Lesson $(NAME).yaml"
 	python waltz push --course s19_cisc108 --settings settings/ud.yaml -d C:/Users/acbart/Projects/cisc108/cisc108-python/ -x -i "pages/$(L)Lesson $(NAME)"
+
+push:
+	python waltz push --course s19_cisc108 --settings settings/ud.yaml -d C:/Users/acbart/Projects/cisc108/cisc108-python/ -x -i "$(ID)"
+
+pull:
+	python waltz pull --course s19_cisc108 --settings settings/ud.yaml -d C:/Users/acbart/Projects/cisc108/cisc108-python/ -x -i "$(ID)"
