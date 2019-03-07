@@ -25,6 +25,7 @@ class QuizQuestion(Resource):
                      "question", "questions"]
     canonical_category = 'questions'
     CACHE = {}
+    QUESTION_GROUP_CACHE_ID = {}
     
     def __init__(self, **kwargs):
         for key, value in list(kwargs.items()):
@@ -50,6 +51,7 @@ class QuizQuestion(Resource):
             result['quiz_group_id'] = self.quiz_group_id
         result['points_possible'] = self.points_possible
         return result
+            
     
     def to_disk(self, force=False):
         if self.bank_source and not force:
@@ -59,7 +61,7 @@ class QuizQuestion(Resource):
         result['question_type'] = self.question_type
         result['question_text'] = h2m(self.question_text)
         if self.quiz_group_id:
-            result['quiz_group_id'] = self.quiz_group_id
+            result['quiz_group'] = self.quiz_group
         result['points_possible'] = self.points_possible
         if self.correct_comments_html:
             result['correct_comments'] = h2m(self.correct_comments_html)
@@ -82,13 +84,31 @@ class QuizQuestion(Resource):
         }
     
     @classmethod
+    def _lookup_quiz_id(cls, quiz_id, group_id, course):
+        if (quiz_id, group_id) in cls.QUESTION_GROUP_CACHE_ID:
+            return cls.QUESTION_GROUP_CACHE_ID[(quiz_id, group_id)]
+        group = get('quizzes/{qid}/groups/{gid}'.format(qid=quiz_id,
+                                                        gid=group_id),
+                        course=course.course_name)
+        cls.QUESTION_GROUP_CACHE_ID[id] = group
+        return group
+    
+    @classmethod
     def from_json(cls, course, json_data):
         # TODO: Match up to bank question and diff
         question_name = json_data['question_name']
         question_type = json_data['question_type']
         bank_question = cls.by_name(question_name, course)
         actual_class = QUESTION_TYPES[question_type]
-        new_question = actual_class(course=course, **json_data)
+        print(json_data['quiz_group_id'])
+        if json_data['quiz_group_id']:
+            quiz_group = cls._lookup_quiz_id(json_data['quiz_id'], 
+                                             json_data['quiz_group_id'],
+                                             course)['name']
+        else:
+            quiz_group = None
+        new_question = actual_class(course=course, quiz_group=quiz_group,
+                                    **json_data)
         
         # Use cached version
         if new_question == bank_question:
@@ -690,12 +710,6 @@ class Quiz(Resource):
         questions = get('quizzes/{qid}/questions/'.format(qid=quiz_id),
                         course=course.course_name, all=True)
         name_map = {q['question_name']: q['id'] for q in questions}
-        #payload = {}
-        #for position, question in enumerate(self.questions):
-        #    base = 'order[]'
-        #    payload[base+'[id]'] = str(name_map[question.question_name])
-        #    payload[base+'[type]'] = 'question'
-        #pprint(payload)
         payload = {'order': []}
         for question in self.questions:
             payload['order'].append({
@@ -756,5 +770,11 @@ class Quiz(Resource):
         questions = get('quizzes/{qid}/questions'.format(qid=json_data['id']), 
                         course=course.course_name, all=True)
         questions = [QuizQuestion.from_json(course, question)
-                     for question in questions]
+                     for question in sorted(questions, key=sort_quiz_question)]
         return cls(**json_data, questions=questions, course=course)
+
+def sort_quiz_question(q):
+    if q['quiz_group_id']:
+        return -q['quiz_group_id']
+    else:
+        return 0
