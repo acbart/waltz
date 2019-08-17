@@ -47,8 +47,8 @@ class QuizQuestion(Resource):
         result['question_name'] = self.question_name
         result['question_type'] = self.question_type
         result['question_text'] = h2m(self.question_text)
-        if self.quiz_group_id:
-            result['quiz_group_id'] = self.quiz_group_id
+        if self.quiz_group_name:
+            result['group'] = self.quiz_group_name
         result['points_possible'] = self.points_possible
         return result
             
@@ -59,9 +59,9 @@ class QuizQuestion(Resource):
         result = CommentedMap()
         result['question_name'] = self.question_name
         result['question_type'] = self.question_type
+        if self.quiz_group_name:
+            result['group'] = self.quiz_group_name
         result['question_text'] = h2m(self.question_text)
-        if self.quiz_group_id:
-            result['quiz_group'] = self.quiz_group
         result['points_possible'] = self.points_possible
         if self.correct_comments_html:
             result['correct_comments'] = h2m(self.correct_comments_html)
@@ -94,20 +94,17 @@ class QuizQuestion(Resource):
         return group
     
     @classmethod
-    def from_json(cls, course, json_data):
+    def from_json(cls, course, json_data, group_map):
         # TODO: Match up to bank question and diff
         question_name = json_data['question_name']
         question_type = json_data['question_type']
         bank_question = cls.by_name(question_name, course)
         actual_class = QUESTION_TYPES[question_type]
-        print(json_data['quiz_group_id'])
         if json_data['quiz_group_id']:
-            quiz_group = cls._lookup_quiz_id(json_data['quiz_id'], 
-                                             json_data['quiz_group_id'],
-                                             course)['name']
+            group = group_map[json_data['quiz_group_id']]
         else:
-            quiz_group = None
-        new_question = actual_class(course=course, quiz_group=quiz_group,
+            group = None
+        new_question = actual_class(course=course, quiz_group_name=group,
                                     **json_data)
         
         # Use cached version
@@ -151,8 +148,7 @@ class QuizQuestion(Resource):
         # Fix simplifications of comments
         for label in ['correct_comments', 'incorrect_comments', 'neutral_comments']:
             yaml_data[label+"_html"] = m2h(yaml_data.pop(label, ""))
-        if 'quiz_group_id' not in yaml_data:
-            yaml_data['quiz_group_id'] = None
+        yaml_data['quiz_group_id'] = yaml_data.pop('group', None)
         # Fix answers
         actual_class._custom_from_disk(yaml_data)
         # Load the appropriate type
@@ -179,6 +175,8 @@ class QuizQuestion(Resource):
     
     @staticmethod
     def load_bank(course):
+        ''' TODO: I don't think this works anymore. We need a better picture
+        of how question banks should work in Waltz. '''
         category_folder = os.path.join(course.root_directory,
                                        QuizQuestion.canonical_category, 
                                        '**', '*.yaml')
@@ -400,6 +398,7 @@ class MultipleAnswersQuestion(QuizQuestion):
         for index, answer in enumerate(self.answers):
             base = 'question[answers][{index}]'.format(index=index)
             result[base+"[answer_html]"] = self._get_first_field(answer, 'html', 'text')
+            result[base+"[answer_text]"] = self._get_first_field(answer, 'html', 'text')
             result[base+"[answer_comment_html]"] = self._get_first_field(answer, 'comments_html', 'comments')
             result[base+"[answer_weight]"] = answer['weight']
         return result
@@ -485,7 +484,7 @@ class MatchingQuestions(QuizQuestion):
     
     @classmethod
     def _custom_from_disk(cls, yaml_data):
-        yaml_data['matching_answer_incorrect_matches'] = yaml_data.pop('incorrect_matches')
+        yaml_data['matching_answer_incorrect_matches'] = yaml_data.pop('incorrect_matches', '')
         yaml_data['answers'] = [{'comments_html': m2h(answer.get('comment', '')),
                                  'left': answer['left'],
                                  'right': answer['right']}
@@ -505,7 +504,7 @@ class MatchingQuestions(QuizQuestion):
         return result
 
 class NumericalQuestion(QuizQuestion):
-    question_type = 'multiple_answers_question'
+    question_type = 'numerical_question'
     
     def to_disk(self, force=False):
         result = QuizQuestion.to_disk(self, force)
@@ -541,7 +540,7 @@ class NumericalQuestion(QuizQuestion):
                  'numerical_answer_type': numerical_answer_type}
             if numerical_answer_type == 'exact_answer':
                 a['exact'] = answer['exact']
-                a['margin'] = answer['margin']
+                a['margin'] = answer.get('margin', 0)
             elif numerical_answer_type == 'range_answer':
                 a['start'] = answer['start']
                 a['end'] = answer['end']
@@ -560,7 +559,7 @@ class NumericalQuestion(QuizQuestion):
             result[base+"[numerical_answer_type]"] = answer['numerical_answer_type']
             if answer['numerical_answer_type'] == 'exact_answer':
                 result[base+"[answer_exact]"] = answer['exact']
-                result[base+"[answer_error_margin]"] = answer['margin']
+                result[base+"[answer_error_margin]"] = answer.get('margin', 0)
             elif answer['numerical_answer_type'] == 'range_answer':
                 result[base+"[answer_range_start]"] = answer['start']
                 result[base+"[answer_range_end]"] = answer['end']
@@ -616,6 +615,62 @@ QUESTION_TYPES = {
     'numerical_question': NumericalQuestion
 }
 
+class QuizGroup(Resource):
+    category_name = ["quiz_group", "quiz_groups"]
+    canonical_category = 'quiz_groups'
+    
+    def __init__(self, **kwargs):
+        for key, value in list(kwargs.items()):
+            setattr(self, key, value)
+            del kwargs[key]
+    
+    def to_public(self, force=False):
+        result = self.to_disk(force)
+        return result
+    
+    def to_disk(self, force=False):
+        result = CommentedMap()
+        result['name'] = self.name
+        result['pick'] = self.pick_count
+        result['points'] = self.question_points
+        return result
+    
+    def to_json(self, course, resource_id):
+        return {
+            'quiz_groups[][name]': self.name,
+            'quiz_groups[][pick_count]': self.pick_count,
+            'quiz_groups[][question_points]': self.question_points
+        }
+    
+    @classmethod
+    def from_json(cls, course, json_data):
+        new_question = QuizGroup(course=course, **json_data)
+        return new_question
+    
+    @classmethod
+    def from_disk(cls, course, yaml_data, resource_id):
+        yaml_data['pick_count'] = yaml_data.pop('pick')
+        yaml_data['question_points'] = yaml_data.pop('points')
+        return QuizGroup(course=course, **yaml_data)
+    
+    def push(self, course, quiz_id, json_data, group_map):
+        '''
+        Get all the questions in this quiz
+        If this name is already in the quiz, then update it's compnents.
+        Otherwise, create a new element.
+        '''
+        if self.name in group_map:
+            id = group_map[self.name]
+            result = put("quizzes/{quiz}/groups/{group}/".format(
+                quiz=quiz_id, group=id
+            ), data=json_data, course=course.course_name)
+        else:
+            result = post("quizzes/{quiz}/groups/".format(
+                quiz=quiz_id
+            ), data=json_data, course=course.course_name)
+            new_group = result["quiz_groups"][0]
+            group_map[new_group['name']] = new_group['id']
+
 class Quiz(Resource):
     category_names = ["quiz", "quizzes"]
     canvas_name = 'quizzes'
@@ -654,6 +709,7 @@ class Quiz(Resource):
             result['settings']['secrecy']['access_code'] = self.access_code
         if self.ip_filter:
             result['settings']['secrecy']['ip_filter'] = self.ip_filter
+        result['groups'] = [g.to_disk() for g in self.groups]
         result['questions'] = [q.to_disk() for q in self.questions]
         return result
     
@@ -677,6 +733,7 @@ class Quiz(Resource):
         result['settings']['secrecy']['hide_correct_answers_at'] = self.hide_correct_answers_at
         result['settings']['secrecy']['hide_results'] = self.hide_results
         result['settings']['secrecy']['one_time_results'] = self.one_time_results
+        result['groups'] = [g.to_public() for g in self.groups]
         result['questions'] = [q.to_public() for q in self.questions]
         return result
     
@@ -688,27 +745,51 @@ class Quiz(Resource):
         questions = get('quizzes/{qid}/questions/'.format(qid=quiz_id),
                         course=course.course_name, all=True)
         resource_id.canvas_data['questions'] = questions
+        group_ids = {question['quiz_group_id'] for question in questions
+                     if question['quiz_group_id'] is not None}
+        groups = [get('quizzes/{qid}/groups/{gid}'.format(qid=quiz_id, gid=gid),
+                      course=course.course_name)
+                  for gid in group_ids]
+        resource_id.canvas_data['groups'] = groups
     
     def extra_push(self, course, resource_id):
         quiz_id = resource_id.canvas_id
+        # Get all the questions old information
         questions = get('quizzes/{qid}/questions/'.format(qid=quiz_id),
                         course=course.course_name, all=True)
         if 'errors' in questions:
             raise WaltzException("Errors in Canvas data: "+repr(questions))
+        # Push all the groups
+        group_ids = {question['quiz_group_id'] for question in questions
+                     if question['quiz_group_id'] is not None}
+        groups = [get('quizzes/{qid}/groups/{gid}'.format(qid=quiz_id, gid=gid),
+                      course=course.course_name)
+                  for gid in group_ids]
+        group_map = {group['name']: group['id'] for group in groups}
+        for group in self.groups:
+            json_data = group.to_json(course, resource_id)
+            group.push(course, quiz_id, json_data, group_map)
+        # Push all the questions
         name_map = {q['question_name']: q['id'] for q in questions}
         for question in self.questions:
+            if question.quiz_group_id is not None:
+                question.quiz_group_id = group_map[question.quiz_group_id]
             json_data = question.to_json(course, resource_id)
             question.push(course, quiz_id, name_map, json_data)
             if question.question_name in name_map:
                 del name_map[question.question_name]
+        # Delete any old questions
         for leftover_name, leftover_id in name_map.items():
             deleted = delete('quizzes/{qid}/questions/{question_id}'.format(
                                qid=quiz_id, question_id=leftover_id),
                                course=course.course_name)
             print("Deleted", leftover_name, deleted)
-        # Reorder elements as needed
+        # Reorder questions as needed
         questions = get('quizzes/{qid}/questions/'.format(qid=quiz_id),
                         course=course.course_name, all=True)
+        return
+        # TODO: Figure out how to get around the fact that Canvas doesn't
+        #   allow you to download an ordering, so uploading an ordering is irrelevant.
         name_map = {q['question_name']: q['id'] for q in questions}
         payload = {'order': []}
         for question in self.questions:
@@ -718,6 +799,7 @@ class Quiz(Resource):
             })
         print(post('quizzes/{}/reorder'.format(quiz_id), json=payload,
               course=course.course_name))
+  
     
     def to_json(self, course, resource_id):
         ''' Suitable for PUT request on API'''
@@ -760,18 +842,28 @@ class Quiz(Resource):
         yaml_data['unlock_at'] = from_friendly_date(yaml_data['unlock_at'])
         yaml_data['lock_at'] = from_friendly_date(yaml_data['lock_at'])
         # Load in the questions
+        groups = yaml_data.pop('groups')
+        groups = [QuizGroup.from_disk(course, group, resource_id)
+                  for group in groups]
         questions = yaml_data.pop('questions')
         questions = [QuizQuestion.from_disk(course, question, resource_id)
                      for question in questions]
-        return cls(**yaml_data, questions=questions, course=course)
+        return cls(**yaml_data, questions=questions, groups=groups, course=course)
     
     @classmethod
     def from_json(cls, course, json_data):
         questions = get('quizzes/{qid}/questions'.format(qid=json_data['id']), 
                         course=course.course_name, all=True)
-        questions = [QuizQuestion.from_json(course, question)
+        group_ids = {question['quiz_group_id'] for question in questions}
+        groups = [QuizGroup.from_json(course,
+                                      get('quizzes/{qid}/groups/{gid}'.format(qid=json_data['id'], gid=gid),
+                                          course=course.course_name))
+                  for gid in group_ids
+                  if gid is not None]
+        group_map = {group.id: group.name for group in groups}
+        questions = [QuizQuestion.from_json(course, question, group_map)
                      for question in sorted(questions, key=sort_quiz_question)]
-        return cls(**json_data, questions=questions, course=course)
+        return cls(**json_data, questions=questions, course=course, groups=groups)
 
 def sort_quiz_question(q):
     if q['quiz_group_id']:
