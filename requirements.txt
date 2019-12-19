@@ -1,3 +1,5 @@
 tqdm
 requests
-ruamel
+ruamel.yaml
+jinja2
+tqdm

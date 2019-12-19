@@ -225,6 +225,7 @@ class MultipleChoiceQuestion(QuizQuestion):
     
     @classmethod
     def _custom_from_disk(cls, yaml_data):
+        print(yaml_data['question_name'])
         yaml_data['answers'] = [
             {'comments_html': m2h(answer.get('comment', "")),
              'weight': 100 if 'correct' in answer else 0,
@@ -398,7 +399,7 @@ class MultipleAnswersQuestion(QuizQuestion):
         for index, answer in enumerate(self.answers):
             base = 'question[answers][{index}]'.format(index=index)
             result[base+"[answer_html]"] = self._get_first_field(answer, 'html', 'text')
-            result[base+"[answer_text]"] = self._get_first_field(answer, 'html', 'text')
+            result[base+"[answer_text]"] = h2m(self._get_first_field(answer, 'html', 'text'))
             result[base+"[answer_comment_html]"] = self._get_first_field(answer, 'comments_html', 'comments')
             result[base+"[answer_weight]"] = answer['weight']
         return result

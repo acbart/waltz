@@ -1,14 +1,16 @@
-import json
 import requests
-import os, sys
+import os
+import sys
 import time
 from datetime import datetime
 
 from waltz.yaml_setup import yaml
 
+
 def yaml_load(path):
     with open(path) as settings_file:
         return yaml.load(settings_file)
+
 
 settings = {
     'courses': {},
@@ -18,6 +20,8 @@ settings = {
 }
 courses = {}
 defaults = {}
+
+
 def load_settings(path='settings.yaml', create_if_not_exists=True):
     global courses, defaults
     # Create settings file if it doesn't exist
@@ -37,9 +41,11 @@ def load_settings(path='settings.yaml', create_if_not_exists=True):
     # Shortcut to access courses
     courses = settings['courses']
     defaults = settings['defaults']
-    
+
+
 def get_courses():
     return settings['courses']
+
 
 def get_setting(setting, course=None):
     if course is None:
@@ -49,8 +55,11 @@ def get_setting(setting, course=None):
             return courses[course][setting]
         return defaults[setting]
     raise Exception("Course not found in settings.yaml: {course}".format(course=course))
-    
-def _canvas_request(verb, command, course, data, all, params, json):
+
+
+def _canvas_request(verb, command, course, data, retrieve_all, params, json):
+    response = ""
+    next_url = ""
     try:
         if data is None:
             data = {}
@@ -65,11 +74,11 @@ def _canvas_request(verb, command, course, data, all, params, json):
         if course == 'default':
             course = get_setting('course')
         next_url = get_setting('canvas-url', course=course)
-        if course != None:
+        if course is not None:
             course_id = courses[course]['id']
             next_url += 'courses/{course_id}/'.format(course_id=course_id)
         next_url += command
-        if all:
+        if retrieve_all:
             data['per_page'] = 100
             final_result = []
             while True:
@@ -86,20 +95,25 @@ def _canvas_request(verb, command, course, data, all, params, json):
             return response.json()
     except json.decoder.JSONDecodeError:
         raise Exception("{}\n{}".format(response, next_url))
-    
-def get(command, course='default', data=None, all=False, params=None, json=None):
-    return _canvas_request(requests.get, command, course, data, all, params, json)
-    
-def post(command, course='default', data=None, all=False, params=None, json=None):
-    return _canvas_request(requests.post, command, course, data, all, params, json)
-    
-def put(command, course='default', data=None, all=False, params=None, json=None):
-    return _canvas_request(requests.put, command, course, data, all, params, json)
-    
-def delete(command, course='default', data=None, all=False, params=None, json=None):
-    return _canvas_request(requests.delete, command, course, data, all, params, json)
 
-def progress_loop(progress_id, DELAY=3):
+
+def get(command, course='default', data=None, retrieve_all=False, params=None, json=None):
+    return _canvas_request(requests.get, command, course, data, retrieve_all, params, json)
+
+
+def post(command, course='default', data=None, retrieve_all=False, params=None, json=None):
+    return _canvas_request(requests.post, command, course, data, retrieve_all, params, json)
+
+
+def put(command, course='default', data=None, retrieve_all=False, params=None, json=None):
+    return _canvas_request(requests.put, command, course, data, retrieve_all, params, json)
+
+
+def delete(command, course='default', data=None, retrieve_all=False, params=None, json=None):
+    return _canvas_request(requests.delete, command, course, data, retrieve_all, params, json)
+
+
+def progress_loop(progress_id, seconds_delay=3):
     attempt = 0
     while True:
         result = _canvas_request(requests.get, 'progress/{}'.format(progress_id), 
@@ -113,22 +127,25 @@ def progress_loop(progress_id, DELAY=3):
             print("In progress:", result['workflow_state'], result['message'], 
                   str(int(round(result['completion']*10))/10)+"%")
             if not hasattr(result, 'from_cache') or not result.from_cache:
-                time.sleep(DELAY)
+                time.sleep(seconds_delay)
             attempt += 1
-            
+
+
 def download_file(url, destination):
-    data = {'access_token': get_setting('canvas-token')}
     r = requests.get(url)
     f = open(destination, 'wb')
     for chunk in r.iter_content(chunk_size=512 * 1024): 
-        if chunk: # filter out keep-alive new chunks
+        if chunk:  # filter out keep-alive new chunks
             f.write(chunk)
     f.close()
 
+
 CANVAS_DATE_STRING = "%Y-%m-%dT%H:%M:%SZ"
+
 
 def from_canvas_date(d1):
     return datetime.strptime(d1, CANVAS_DATE_STRING)
+
 
 def to_canvas_date(d1):
     return d1.strftime(CANVAS_DATE_STRING)
