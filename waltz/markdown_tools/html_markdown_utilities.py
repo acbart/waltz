@@ -10,6 +10,8 @@ html_to_markdown.skip_internal_links = False
 html_to_markdown._skip_a_class_check = False
 html_to_markdown._class_stack = []
 
+WALTZ_METADATA_CLASS = "waltz-metadata"
+
 def handle_custom_tags(self, tag, attrs, start):
     if self._skip_a_class_check:
         return False
@@ -34,6 +36,12 @@ def handle_custom_tags(self, tag, attrs, start):
             )))
         else:
             self.o("</iframe>")
+    if tag == "div":
+        # TODO: add matching behavior on other side of m2h
+        if "class" in attrs and WALTZ_METADATA_CLASS in attrs['class'].split(" "):
+            styles = [style.lower().strip() for style in attrs.get('style', '').split(";")]
+            if any(style.startswith('display') and style.endswith('none') for style in styles):
+                self.out("---")
     if tag == "p" and 'class' in attrs:
         if not start:
             self._skip_a_class_check = True
@@ -68,7 +76,9 @@ def handle_custom_tags(self, tag, attrs, start):
     else:
         return False
 
+
 html_to_markdown.tag_callback = handle_custom_tags
+
 
 def h2m(html):
     if not html:
@@ -91,8 +101,9 @@ def h2m(html):
             modified.append(line)
     return ("\n".join(modified)).strip()
   
-## Markdown to HTML
+# Markdown to HTML
 # m2h
+
 
 my_extras = {
     'fenced-code-blocks': {
@@ -103,9 +114,11 @@ my_extras = {
     'header-ids': True,
     'tables': True
 }
-def markdowner(text, extension_directory='waltz.'):
-    return markdown(text, extensions=[
-        'fenced_code', 'attr_list',
+
+
+def m2h(text, extension_directory='waltz.'):
+    result = markdown(text, extensions=[
+        'fenced_code', 'attr_list', 'meta',
         'tables', 'codehilite',
         extension_directory+'iconfonts:IconFontsExtension',
         extension_directory+'headerid:HeaderIdExtension',
@@ -114,8 +127,8 @@ def markdowner(text, extension_directory='waltz.'):
         'codehilite': {
         'noclasses': True
     }})
+    return result
 
-m2h = markdowner
 
 if __name__ == '__main__':
     import os
@@ -140,7 +153,7 @@ if __name__ == '__main__':
         if currently[1:] not in ('html', 'md'):
             raise ValueError("Needed either .html or .md, but got: "+input_path)
         
-        m2h = lambda contents: markdowner(contents, extension_directory='')
+        m2h = lambda contents: m2h(contents, extension_directory='')
         conversion = h2m if currently[1:] == 'html' else m2h
         convert_back = m2h if currently[1:] == 'html' else h2m
         new_extension = '.md' if currently[1:] == 'html' else '.html'

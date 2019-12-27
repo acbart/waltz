@@ -16,9 +16,11 @@ from markdown.util import parseBoolValue
 from markdown.extensions.toc import slugify, unique, stashedHTML2text
 import warnings
 
+
 class HeaderIdTreeprocessor(Treeprocessor):
     """ Assign IDs to headers. """
     IDs = set()
+
     def run(self, doc):
         start_level, force_id = self._get_meta()
         slugify = self.config['slugify']
@@ -37,6 +39,7 @@ class HeaderIdTreeprocessor(Treeprocessor):
                     if level > 6:
                         level = 6
                     elem.tag = 'h%d' % level
+
     def _get_meta(self):
         """ Return meta data suported by this ext as a tuple """
         level = int(self.config['level']) - 1
@@ -47,6 +50,8 @@ class HeaderIdTreeprocessor(Treeprocessor):
             if 'header_forceid' in self.md.Meta:
                 force = parseBoolValue(self.md.Meta['header_forceid'][0])
         return level, force
+
+
 class HeaderIdExtension(Extension):
     def __init__(self, *args, **kwargs):
         # set defaults
@@ -61,6 +66,7 @@ class HeaderIdExtension(Extension):
             'The HeaderId Extension is pending deprecation. Use the TOC Extension instead.',
             PendingDeprecationWarning
         )
+
     def extendMarkdown(self, md, md_globals):
         md.registerExtension(self)
         self.processor = HeaderIdTreeprocessor()
@@ -72,7 +78,10 @@ class HeaderIdExtension(Extension):
         else:
             # insert after 'prettify' treeprocessor.
             md.treeprocessors.add('headerid', self.processor, '>prettify')
+
     def reset(self):
         self.processor.IDs = set()
+
+
 def makeExtension(*args, **kwargs):
     return HeaderIdExtension(*args, **kwargs)

@@ -1,33 +1,20 @@
-import re
-import os
-import difflib
-from glob import glob
 import gzip
 import json
-from collections import OrderedDict
-from pprint import pprint
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
 
-from ruamel.yaml.comments import CommentedMap
-from ruamel.yaml.scalarstring import walk_tree, preserve_literal
-
-from waltz.html_markdown_utilities import h2m, m2h
-
-from waltz.yaml_setup import yaml
-from waltz.canvas_tools import get, put, post, get_setting
-from waltz.canvas_tools import from_canvas_date, to_canvas_date
-
 from waltz.utilities import (ensure_dir, make_safe_filename, indent4,
-                             make_datetime_filename, log,
-                             to_friendly_date, from_friendly_date)
+                             make_datetime_filename, log)
+
 
 class WaltzException(Exception):
     pass
 
+
 class WaltzNoResourceFound(WaltzException):
     pass
+
 
 class ResourceID:
     def __init__(self, course, raw):
@@ -249,6 +236,7 @@ class Course:
         with gzip.open(backup_path, 'wb') as out:
             out.write(contents)
 
+
 class Resource:
     title = "Untitled Instance"
     canvas_title_field = 'title'
@@ -299,7 +287,7 @@ class Resource:
     @classmethod
     def find_resource_on_canvas(cls, course, resource_name):
         results = get(cls.canvas_name, params={"search_term": resource_name},
-                      course=course.course_name, all=True)
+                      course=course.course_name, retrieve_all=True)
         if 'errors' in results:
             raise WaltzException("Errors in Canvas data: "+repr(results))
         return results
@@ -323,7 +311,7 @@ class Resource:
             return False, potentials[0]
         else:
             raise ValueError("Category {} has two files with same name:\n{}"
-                .format(self.canonical_category, '\n'.join(potentials)))
+                .format(cls.canonical_category, '\n'.join(potentials)))
     
     @classmethod
     def identify_filename(cls, filename):
@@ -350,7 +338,8 @@ class Resource:
     @classmethod
     def get_names_from_json(cls, json_data):
         return [cls.identify_title(r) for r in json_data]
-        
+
+
 class HtmlContent(Resource):
     def __init__(self, text, template=None):
         self.template = template
@@ -366,7 +355,8 @@ class HtmlContent(Resource):
         return markdown
     def _generate_html(self):
         return ''
-        
+
+
 class Page(Resource):
     category_names = ["page", "pages"]
     canvas_name = 'pages'
@@ -398,7 +388,8 @@ class Page(Resource):
             'wiki_page[body]': self.body,
             'wiki_page[title]': self.title
         }
-        
+
+
 class Outcome(Resource):
     category_names = ["outcome", "outcomes"]
     canvas_name = 'outcomes'
@@ -433,7 +424,8 @@ class Outcome(Resource):
     @classmethod
     def from_disk(cls, course, resource_data, resource_id):
         return cls(**resource_data, course=course)
-        
+
+
 class Assignment(Resource):
     category_names = ["assignments", "assignment", "a"]
     canvas_name = 'assignments'
@@ -502,7 +494,7 @@ class Assignment(Resource):
     def from_json(cls, course, json_data):
         return cls(**json_data, course=course)
 
-from waltz.quizzes import *
+from waltz.services.canvas.quizzes import *
 
 ALL_RESOURCES = [Quiz, Page, Assignment]
 RESOURCE_CATEGORIES = {}

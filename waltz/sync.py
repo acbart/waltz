@@ -1,15 +1,6 @@
-import json
 import os
-import math
-import requests
 import requests_cache
-import argparse
-import re
-import csv
-import dateutil.parser
-from datetime import datetime
-from pprint import pprint
-from collections import Counter, defaultdict
+
 try:
     from tqdm import tqdm
 except:
@@ -19,17 +10,13 @@ except:
 from glob import glob
 
 from waltz.yaml_setup import yaml
-from ruamel.yaml.scalarstring import walk_tree
-    
-from waltz.canvas_tools import get, post, put, delete, progress_loop
-from waltz.canvas_tools import get_setting, get_courses, download_file
-from waltz.canvas_tools import from_canvas_date, to_canvas_date
-from waltz.canvas_tools import yaml_load, load_settings
-from waltz.utilities import ensure_dir, global_settings, log
-from waltz.resources import (RESOURCE_CATEGORIES, ResourceID, WaltzException,
+
+from waltz.services.canvas.canvas_tools import get_setting, get_courses
+from waltz.services.canvas.canvas_tools import load_settings
+from waltz.utilities import global_settings, log
+from waltz.resources import (ResourceID, WaltzException,
                              Course, Page)
 
-#multiple_dropdowns_question
 
 def pull_all_resources(resource_ids, format, destination, course_name, ignore):
     course = Course(destination, course_name)
@@ -42,6 +29,7 @@ def pull_all_resources(resource_ids, format, destination, course_name, ignore):
         resource_id = "{category}/:{id}".format(category=category, id=id)
         pull_resource(resource_id, format, destination, course_name, ignore)
     return len(resource_list)
+
 
 def push_resource(resource_id, format, source, course_name, ignore):
     course = Course(source, course_name)
@@ -57,6 +45,7 @@ def push_resource(resource_id, format, source, course_name, ignore):
     course.push(resource_id, json_resource)
     resource.extra_push(course, resource_id)
 
+
 def pull_resource(resource_id, format, destination, course_name, ignore):
     '''
     If resource_id is a number
@@ -70,7 +59,8 @@ def pull_resource(resource_id, format, destination, course_name, ignore):
     json_resource = course.pull(resource_id)
     resource = course.from_json(resource_id, json_resource)
     course.to_disk(resource_id, resource)
-    
+
+
 def publicize_resource(resource_id, format, destination, course_name, ignore):
     if isinstance(course_name, str):
         course = Course(destination, course_name)
@@ -81,7 +71,8 @@ def publicize_resource(resource_id, format, destination, course_name, ignore):
     resource = course.from_disk(resource_id)
     public_resource = course.to_public(resource_id, resource)
     course.publicize(resource_id, public_resource)
-    
+
+
 def build_from_template(path, destination, course_name, ignore):
     if isinstance(course_name, str):
         course = Course(destination, course_name)
@@ -108,6 +99,7 @@ def build_from_template(path, destination, course_name, ignore):
     with open(output_path, 'w') as output_file:
         output_file.write(markdown_page)
 
+
 def main(args):
     global quiet
     load_settings(args.settings)
@@ -126,7 +118,7 @@ def main(args):
     if args.destination is None:
         destination = 'courses/{}/'.format(course)
         if not os.path.exists('courses/'):
-            os.makedirs(path, exist_ok=True)
+            os.makedirs('courses/', exist_ok=True)
     else:
         destination = args.destination
     

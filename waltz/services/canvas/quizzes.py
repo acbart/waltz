@@ -1,24 +1,17 @@
-import re
 import os
-import difflib
 from glob import glob
-import gzip
-import json
-from collections import OrderedDict
-from pprint import pprint
 
 from ruamel.yaml.comments import CommentedMap
-from ruamel.yaml.scalarstring import walk_tree, preserve_literal
+from ruamel.yaml.scalarstring import walk_tree
 
-from waltz.html_markdown_utilities import h2m, m2h
+from waltz.markdown_tools.html_markdown_utilities import h2m, m2h
 
 from waltz.yaml_setup import yaml
-from waltz.canvas_tools import get, put, post, delete
+from waltz.services.canvas.canvas_tools import get, put, post, delete
 
-from waltz.utilities import (ensure_dir, make_safe_filename, indent4,
-                             make_datetime_filename,
-                             to_friendly_date, from_friendly_date)
-from waltz.resources import Resource
+from waltz.utilities import (to_friendly_date, from_friendly_date)
+from waltz.resources import Resource, WaltzException
+
 
 class QuizQuestion(Resource):
     category_name = ["quiz_question", "quiz_questions",
@@ -135,7 +128,7 @@ class QuizQuestion(Resource):
         # Dump them back into the file
         walk_tree(questions)
         with open(bank_source, 'w') as bank_file:
-            yaml.dump(questions, out)
+            yaml.dump(questions, bank_file)
     
     def _custom_from_disk(cls, yaml_data):
         pass
@@ -744,7 +737,7 @@ class Quiz(Resource):
             return
         quiz_id = resource_id.canvas_id
         questions = get('quizzes/{qid}/questions/'.format(qid=quiz_id),
-                        course=course.course_name, all=True)
+                        course=course.course_name, retrieve_all=True)
         resource_id.canvas_data['questions'] = questions
         group_ids = {question['quiz_group_id'] for question in questions
                      if question['quiz_group_id'] is not None}
@@ -757,7 +750,7 @@ class Quiz(Resource):
         quiz_id = resource_id.canvas_id
         # Get all the questions old information
         questions = get('quizzes/{qid}/questions/'.format(qid=quiz_id),
-                        course=course.course_name, all=True)
+                        course=course.course_name, retrieve_all=True)
         if 'errors' in questions:
             raise WaltzException("Errors in Canvas data: "+repr(questions))
         # Push all the groups
@@ -787,7 +780,7 @@ class Quiz(Resource):
             print("Deleted", leftover_name, deleted)
         # Reorder questions as needed
         questions = get('quizzes/{qid}/questions/'.format(qid=quiz_id),
-                        course=course.course_name, all=True)
+                        course=course.course_name, retrieve_all=True)
         return
         # TODO: Figure out how to get around the fact that Canvas doesn't
         #   allow you to download an ordering, so uploading an ordering is irrelevant.
@@ -854,7 +847,7 @@ class Quiz(Resource):
     @classmethod
     def from_json(cls, course, json_data):
         questions = get('quizzes/{qid}/questions'.format(qid=json_data['id']), 
-                        course=course.course_name, all=True)
+                        course=course.course_name, retrieve_all=True)
         group_ids = {question['quiz_group_id'] for question in questions}
         groups = [QuizGroup.from_json(course,
                                       get('quizzes/{qid}/groups/{gid}'.format(qid=json_data['id'], gid=gid),
@@ -865,6 +858,7 @@ class Quiz(Resource):
         questions = [QuizQuestion.from_json(course, question, group_map)
                      for question in sorted(questions, key=sort_quiz_question)]
         return cls(**json_data, questions=questions, course=course, groups=groups)
+
 
 def sort_quiz_question(q):
     if q['quiz_group_id']:

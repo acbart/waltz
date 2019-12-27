@@ -1,7 +1,7 @@
 
 from markdown.extensions import Extension
-from markdown.util import etree
 from markdown.treeprocessors import Treeprocessor
+
 
 class DecorateTablesProcessor(Treeprocessor):
     def run(self, root):
@@ -10,8 +10,8 @@ class DecorateTablesProcessor(Treeprocessor):
     def set_table_class(self, element):
         for child in element:
             if child.tag == "table":
-                child.set("class", "table table-striped table-bordered") #set the class attribute
-            self.set_table_class(child) # run recursively on children
+                child.set("class", "table table-striped table-bordered")  # set the class attribute
+            self.set_table_class(child)  # run recursively on children
 
 
 class TableDecoratorExtension(Extension):
@@ -22,7 +22,8 @@ class TableDecoratorExtension(Extension):
         self.processor.md = md
         self.processor.config = self.getConfigs()
         md.treeprocessors.add('decorate_tables', self.processor, '>headerid')
-        
+
+
 # http://pythonhosted.org/Markdown/extensions/api.html#makeextension
 def makeExtension(*args, **kwargs):
-	return TableDecoratorExtension(*args, **kwargs)
+    return TableDecoratorExtension(*args, **kwargs)
