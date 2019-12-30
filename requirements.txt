@@ -2,7 +2,6 @@ tqdm
 requests
 ruamel.yaml
 jinja2
-tqdm
 markdown
 requests_cache
 python-dateutil

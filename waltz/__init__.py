@@ -1,2 +1,1 @@
-import waltz.sync
-import waltz.resources
+import waltz.services

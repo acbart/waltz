@@ -1,0 +1,2 @@
+class WaltzException(Exception):
+    pass
