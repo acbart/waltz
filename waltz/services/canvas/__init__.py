@@ -4,7 +4,14 @@ from waltz.services.service import Service
 
 class Canvas(Service):
     def copy(self, updates):
-        pass
+        settings = {}
+        if updates.base:
+            settings['base'] = updates.base
+        if updates.token:
+            settings['token'] = updates.token
+        if updates.course:
+            settings['course'] = updates.course
+        return Canvas(updates.new, 'canvas', settings, False)
 
     def add_parser_copy(self, parser):
         canvas_parser = parser.add_parser('canvas', help="Connect to a specific Canvas course")
