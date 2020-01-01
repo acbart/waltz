@@ -8,6 +8,7 @@ class Service:
     use them without reference to a Course. The Specific ones can override settings in order to have further
     specifications.
     """
+    RESOURCES: 'Dict[str, Resource]'
     name: str
     # The service that this one extends; if None, then this is an Abstract service
     parent: str
@@ -20,6 +21,11 @@ class Service:
         self.default = default
         self.settings = settings
 
+    @classmethod
+    def register_resource(cls, resource_category):
+        for name in resource_category.category_names:
+            cls.RESOURCES[name] = resource_category
+
     def as_data(self):
         return {
             'name': self.name,
@@ -30,16 +36,19 @@ class Service:
     @classmethod
     def from_data(cls, data, existing_services):
         name = data['name']
-        if name in existing_services:
-            singleton = existing_services[name]
-            return singleton
         parent = data['parent']
+        # TODO: I flipped the order of these, but I think that's wrong. Need to approach when clear-headed
+        #       Issue is that the course version of local should clobber the parent, but is that an exception?
+        # Create a new version of this
         if parent in existing_services:
-            old_version = existing_services[name]
+            old_version = existing_services[parent]
             constructor = type(old_version)
             old_settings = old_version.settings.copy()
             old_settings.update(data['settings'])
             return constructor(name, parent, old_settings)
+        # Use the existing version
+        if name in existing_services:
+            return existing_services[name]
 
         raise WaltzException("Unknown parent service '{}' for service '{}'".format(parent, name))
 
@@ -48,6 +57,9 @@ class Service:
 
     def add_parser_copy(self, parser):
         pass
+
+    def search(self, category, resource):
+        return []
 
 
 def services_as_data(services):

@@ -21,7 +21,7 @@ class TableDecoratorExtension(Extension):
         self.processor = DecorateTablesProcessor()
         self.processor.md = md
         self.processor.config = self.getConfigs()
-        md.treeprocessors.add('decorate_tables', self.processor, '>headerid')
+        md.treeprocessors.add('decorate_tables', self.processor, '>toc')
 
 
 # http://pythonhosted.org/Markdown/extensions/api.html#makeextension

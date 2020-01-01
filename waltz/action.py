@@ -11,10 +11,20 @@ def handle_registry(args, registry):
 
 
 def Add(args, registry=None):
+    """
+    Add a new course to the registry with the given name and location.
+
+    Args:
+        args:
+        registry:
+
+    Returns:
+
+    """
     registry = handle_registry(args, registry)
-    registry.add_course(args.what, LOCAL.in_new_position(args.path))
+    registry.add_course(args.name, args.path)
     if registry.default_course is None:
-        registry.default_course = args.what
+        registry.default_course = args.name
     registry.save_to_file()
     return registry
 
@@ -40,6 +50,29 @@ def List(args, registry=None):
         for service in registry.services.values():
             print("\t", service.name)
     return registry
+
+
+def Search(args, registry=None):
+    registry = handle_registry(args, registry)
+    # Given service, go immediately find the resource
+    # Otherwise we'll search for it the best we can
+    # Ask everyone about who wants to search
+    filter_by_services = []
+    if args.service:
+        filter_by_services.append(args.service)
+    results = registry.search(args.category, args.what, filter_by_services)
+    for result in results:
+        print(result)
+    return registry
+
+
+def Download(args, registry=None):
+    registry = handle_registry(args, registry)
+    # Given service, go immediately find the resource
+    # Otherwise we'll search for it the best we can
+    # Ask everyone about who wants to search
+    return registry
+
 
 def Show(args, registry=None):
     registry = handle_registry(args, registry)

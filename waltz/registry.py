@@ -70,12 +70,33 @@ class Registry:
             }, registry_file)
         return self
 
-    def add_course(self, name, local_service):
-        self.courses[name] = Course(name, {'local': local_service})
+    def add_course(self, name, directory):
+        self.courses[name] = Course(name, directory, {})
 
-    def copy_service(self, old, args, globally):
-        new_service = self.services[old].copy(args)
-        if globally:
+    def copy_service(self, old, args):
+        new_service = self.lookup_service(old).copy(args)
+        if args.globally:
             self.services[new_service.name] = new_service
         else:
             self.courses[self.default_course].services[new_service.name] = new_service
+
+    def lookup_service(self, name):
+        course_services = self.courses[self.default_course].services
+        if name in course_services:
+            return course_services[name]
+        if name in self.services:
+            return self.services[name]
+        default_services = defaults.get_default_services()
+        if name in default_services:
+            return default_services[name]
+        raise WaltzException("Unknown service: {}".format(name))
+
+    def search(self, category, resource_name, filter_by_services):
+        course_services = self.courses[self.default_course].services
+        # Don't search default groups, assuming they are incomplete intentionally
+        service_groups = [course_services, self.services]
+        for service_group in service_groups:
+            for service_name, service in service_group.items():
+                if service_name in filter_by_services or not filter_by_services:
+                    for result in service.search(category, resource_name):
+                        yield result

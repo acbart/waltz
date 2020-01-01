@@ -1,5 +1,5 @@
 from html2text import HTML2Text
-from markdown import markdown
+from markdown import Markdown
 
 # HTML to MARKDOWN
 # h2m
@@ -111,49 +111,58 @@ my_extras = {
         'noclasses': True
     },
     'html-classes': {'a': 'test'},
-    'header-ids': True,
+    #'header-ids': True,
     'tables': True
 }
 
+extension_directory='waltz.markdown_tools.'
+markdowner = Markdown(extensions=[
+    'fenced_code', 'attr_list', 'meta',
+    'tables', 'codehilite', "toc",
+    extension_directory+'iconfonts:IconFontsExtension',
+    extension_directory+'decorate_tables:TableDecoratorExtension'
+], extension_configs={
+    'codehilite': {
+    'noclasses': True
+}})
 
-def m2h(text, extension_directory='waltz.'):
-    result = markdown(text, extensions=[
-        'fenced_code', 'attr_list', 'meta',
-        'tables', 'codehilite',
-        extension_directory+'iconfonts:IconFontsExtension',
-        extension_directory+'headerid:HeaderIdExtension',
-        extension_directory+'decorate_tables:TableDecoratorExtension'
-    ], extension_configs={
-        'codehilite': {
-        'noclasses': True
-    }})
-    return result
+
+def m2h(text, with_metadata=False):
+    result = markdowner.reset().convert(text)
+    if with_metadata:
+        return result, markdowner.Meta
+    else:
+        return result
 
 
 if __name__ == '__main__':
+    print(h2m("<i>Hello</i>"))
+    print(m2h("_Hello_"))
+    print(m2h("---\na:0\n---\nHello *there* you", True))
+
     import os
     import argparse
     from glob import glob
-    
+
     parser = argparse.ArgumentParser(description='Convert html/markdown')
     parser.add_argument('input', help='What file to read as input')
     parser.add_argument('--output', '-o', help='Where to store file (defaults to same folder as input).')
     parser.add_argument('--roundtrip', '-r', help='Whether to roundtrip the files once (e.g., HTML -> Markdown -> HTML -> Markdown', action='store_true', default=False)
     args = parser.parse_args()
-    
+
     if '*' in args.input:
         input_paths = glob(args.input, recursive=True)
     else:
         input_paths = [args.input]
-    
+
     for input_path in input_paths:
-    
+
         path, currently = os.path.splitext(input_path)
-        
+
         if currently[1:] not in ('html', 'md'):
             raise ValueError("Needed either .html or .md, but got: "+input_path)
-        
-        m2h = lambda contents: m2h(contents, extension_directory='')
+
+        m2h = lambda contents: m2h(contents)
         conversion = h2m if currently[1:] == 'html' else m2h
         convert_back = m2h if currently[1:] == 'html' else h2m
         new_extension = '.md' if currently[1:] == 'html' else '.html'
@@ -166,11 +175,11 @@ if __name__ == '__main__':
 
         with open(input_path) as input_file:
             contents = input_file.read()
-        
+
         contents = conversion(contents)
-        
+
         if args.roundtrip:
             contents = conversion(convert_back(contents))
-        
+
         with open(output_path, 'w') as output_file:
             output_file.write(contents)

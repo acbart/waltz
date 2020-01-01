@@ -340,23 +340,6 @@ class Resource:
         return [cls.identify_title(r) for r in json_data]
 
 
-class HtmlContent(Resource):
-    def __init__(self, text, template=None):
-        self.template = template
-        self.text = text
-    def _parse_html(self):
-        if self.text is None:
-            return ""
-        if self.text == "":
-            return ""
-        markdown = h2m(self.text)
-        #markdown = re.sub(r'\n\s*\n', '\n\n', markdown)
-        markdown = markdown.strip()+"\n"
-        return markdown
-    def _generate_html(self):
-        return ''
-
-
 class Page(Resource):
     category_names = ["page", "pages"]
     canvas_name = 'pages'

@@ -1,22 +1,27 @@
 """
-> waltz add course f19_cisc108 <LocalDirectory>
+> waltz init
+  Creates ".waltz" and ".waltz.db"
+    "You are recommended to add these files to your .gitignore"
 > waltz list services
-  ...
-  local
-  canvas <Abstract>
-  blockpy <Abstract>
-  BlockPyGold <Global>
-  ...
-> waltz copy canvas UDCanvas <CanvasBaseUrl> <CanvasID> <CanvasToken> -l
-> waltz copy local s19_local ../s19_cisc108/
-> waltz list canvas resources Pages
+  local (./)
+  canvas (no configuration)
+  blockpy (no configuration)
+> waltz configure canvas <CanvasBaseUrl> <CanvasID> <CanvasToken> -l
+  local (./)
+  canvas
+    CourseCode: <CanvasBaseUrl>/courses/<CanvasID>
+  blockpy
+# Could configure multiple canvases, and then have to refer to them by name. But default can be "canvas".
+> waltz list canvas Pages
    ...
    Policies- Syllabus
    Reference- String Methods
    Reference- Turtle Functions
    ...
-> waltz pull "Reference- String Methods"
-> waltz list local resources Pages
+> waltz pull canvas page "Reference- String Methods"
+# Implicitly to this current folder, but could have specified. Didn't actually need `canvas` because its
+#   the only configured service with that verb.
+> waltz list local Pages
    ...
    Reference- String Methods
    ...
@@ -40,7 +45,7 @@ def parse_command_line(args):
 
     # Add Course
     parser_add = subparsers.add_parser('add', help='Add a new course')
-    parser_add.add_argument('what', type=str, help="The name of the course you are adding. Choose "
+    parser_add.add_argument('name', type=str, help="The name of the course you are adding. Choose "
                                                    "something convenient to type!")
     parser_add.add_argument('path', type=str, help="The local directory to associate with this course.")
     # TODO: allow path to be blank to reuse the name?
@@ -48,9 +53,11 @@ def parse_command_line(args):
 
     # Copy Service from course
     parser_copy = subparsers.add_parser('copy', help='Make a new copy of a service with modifications')
-    parser_copy_services = parser_copy.add_subparsers(help="The name of the service you are copying.")
+    parser_copy_services = parser_copy.add_subparsers(help="The name of the service you are copying.", dest='old')
     for name, service in defaults.get_default_services().items():
-        service.add_parser_copy(parser_copy_services)
+        new_sub_parser = service.add_parser_copy(parser_copy_services)
+        new_sub_parser.add_argument('--globally', action='store_true', default=False,
+                                    help='Whether this should be a global service or specific to this course.')
     # TODO: allow path to be blank to reuse the name?
     parser_copy.set_defaults(func=actions.Copy)
 
@@ -66,7 +73,19 @@ def parse_command_line(args):
 
     # Show [Course|Service]
 
+    # Search
+    parser_search = subparsers.add_parser('search', help='Search for a resource.')
+    parser_search.add_argument('category', type=str, help="The category of resource to search")
+    parser_search.add_argument('what', type=str, help="The resource to download")
+    parser_search.add_argument("--service", type=str, help="The specific service to use in case of ambiguity.")
+    parser_search.set_defaults(func=actions.Search)
+
     # Download
+    parser_download = subparsers.add_parser('download', help='Download the raw version of a resource.')
+    parser_download.add_argument('category', type=str, help="The category of resource to search")
+    parser_download.add_argument('what', type=str, help="The resource to download")
+    parser_download.add_argument("--service", type=str, help="The specific service to use in case of ambiguity.")
+    parser_download.set_defaults(func=actions.Download)
 
     # Upload
 

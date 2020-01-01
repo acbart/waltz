@@ -8,21 +8,25 @@ class Course:
     a Course would be expected to have at least the Local Service, which is a directory.
     """
     name: str
+    directory: str
     services: 'Dict[str, Service]'
 
-    def __init__(self, name: str, services: 'Dict[str, Service]'):
+    def __init__(self, name: str, directory: str, services: 'Dict[str, Service]'):
         self.name = name
+        self.directory = directory
         self.services = services
 
     def as_data(self):
         return {
             'name': self.name,
+            'directory': self.directory,
             'services': services_as_data(self.services)
         }
 
     @classmethod
     def from_data(cls, data, existing_services):
-        return Course(data['name'], services_from_data(data['services'], existing_services))
+        return Course(data['name'], data['directory'],
+                      services_from_data(data['services'], existing_services))
 
 
 def courses_as_data(courses):
