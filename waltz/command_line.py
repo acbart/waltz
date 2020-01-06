@@ -3,9 +3,10 @@
   Creates ".waltz" and ".waltz.db"
     "You are recommended to add these files to your .gitignore"
 > waltz list services
-  local (./)
-  canvas (no configuration)
-  blockpy (no configuration)
+  local
+    ./
+  canvas (no configurations)
+  blockpy (no configurations)
 > waltz configure canvas <CanvasBaseUrl> <CanvasID> <CanvasToken> -l
   local (./)
   canvas
@@ -39,36 +40,37 @@ from waltz import defaults
 
 def parse_command_line(args):
     parser = argparse.ArgumentParser(prog='waltz', description='Sync resources between services for a course')
-    parser.add_argument('--registry_path', type=str, help="Path to the registry file to use instead.",
-                        default=defaults.REGISTRY_PATH)
+    parser.add_argument('--waltz_directory', type=str, help="Path to the main waltz directory with the Waltz registry and DB file.",
+                        default="./")
     subparsers = parser.add_subparsers(help='Available commands')
 
-    # Add Course
-    parser_add = subparsers.add_parser('add', help='Add a new course')
-    parser_add.add_argument('name', type=str, help="The name of the course you are adding. Choose "
-                                                   "something convenient to type!")
-    parser_add.add_argument('path', type=str, help="The local directory to associate with this course.")
-    # TODO: allow path to be blank to reuse the name?
-    parser_add.set_defaults(func=actions.Add)
+    # Init Waltz
+    parser_init = subparsers.add_parser('init', help='Initialize a new Waltz here')
+    parser_init.add_argument('--directory', "-d", type=str, default="./",
+                             help="The local directory to use for this waltz; defaults to current directory.")
+    parser_init.add_argument('--overwrite', "-o", action="store_true", default=False,
+                             help="If used, then overwrites the existing waltz registry.")
+    parser_init.set_defaults(func=actions.Init)
 
-    # Copy Service from course
-    parser_copy = subparsers.add_parser('copy', help='Make a new copy of a service with modifications')
-    parser_copy_services = parser_copy.add_subparsers(help="The name of the service you are copying.", dest='old')
-    for name, service in defaults.get_default_services().items():
-        new_sub_parser = service.add_parser_copy(parser_copy_services)
-        new_sub_parser.add_argument('--globally', action='store_true', default=False,
-                                    help='Whether this should be a global service or specific to this course.')
-    # TODO: allow path to be blank to reuse the name?
-    parser_copy.set_defaults(func=actions.Copy)
 
-    # List [Course|Service]
-    parser_list = subparsers.add_parser('list', help='List available courses or services')
-    parser_list.add_argument('kind', choices=["courses", "services"], type=str,
-                             help="Either 'courses' or 'services'")
-    # List services for current course
-    # List all services
-    # List all abstract services
-    # List all generic services
+    # Reset Database
+    parser_reset = subparsers.add_parser('reset', help='Reset the Waltz database entirely.')
+    parser_reset.set_defaults(func=actions.Reset)
+
+
+    # Configure service
+    parser_configure = subparsers.add_parser('configure', help='Configure a new instance of the service.')
+    parser_configure_services = parser_configure.add_subparsers(dest='type',
+                                                                help="The type of the service you are configuring.")
+    for name, service_type in defaults.get_service_types().items():
+        service_type.add_parser_configure(parser_configure_services)
+    parser_configure.set_defaults(func=actions.Configure)
+
+    # List Services or Resources
+    parser_list = subparsers.add_parser('list', help='List available services or resources')
+    parser_list_services = parser_list.add_subparsers(dest='service', help="The service to search within.")
+    for name, service_type in defaults.get_service_types().items():
+        service_type.add_parser_list(parser_list_services)
     parser_list.set_defaults(func=actions.List)
 
     # Show [Course|Service]
@@ -80,18 +82,56 @@ def parse_command_line(args):
     parser_search.add_argument("--service", type=str, help="The specific service to use in case of ambiguity.")
     parser_search.set_defaults(func=actions.Search)
 
+    def add_id_and_url(subparser):
+        subparser.add_argument("--id", help="A resource-specific ID to disambiguate this resource definitively.")
+        subparser.add_argument("--url", help="A resource-specific URL to disambiguate this resource definitively.")
+
     # Download
     parser_download = subparsers.add_parser('download', help='Download the raw version of a resource.')
-    parser_download.add_argument('category', type=str, help="The category of resource to search")
-    parser_download.add_argument('what', type=str, help="The resource to download")
-    parser_download.add_argument("--service", type=str, help="The specific service to use in case of ambiguity.")
+    parser_download.add_argument('resource', nargs='+', type=str, help="The resource to download. Could be a "
+                                 "resource title, filename, or some combination of those and the service and category.")
+    add_id_and_url(parser_download)
+    #parser_download_services = parser_download.add_subparsers(dest='service', help="The service to download from.")
+    #for name, service_type in defaults.get_service_types().items():
+    #    service_type.add_parser_download(parser_download_services)
     parser_download.set_defaults(func=actions.Download)
 
     # Upload
+    parser_upload = subparsers.add_parser('upload', help='Upload the raw version of a resource.')
+    parser_upload.add_argument('resource', nargs='+', type=str, help="The resource to download. Could be a "
+                                                                       "resource title, filename, or some combination of those and the service and category.")
+    add_id_and_url(parser_upload)
+    parser_upload.set_defaults(func=actions.Upload)
 
-    # Restyle
+    # Decode
+    parser_decode = subparsers.add_parser('decode', help='Convert a raw resource into a locally editable one.')
+    parser_decode.add_argument('resource', nargs='+', type=str, help="The resource to decode. Could be a "
+                               "filename, resource title, or some combination of those and the service and category.")
+    parser_decode.add_argument("--local_service", type=str, help="The specific local service to use as an override.")
+    parser_decode.add_argument("--destination", "-d", type=str, help="The destination directory for this resource.")
+    add_id_and_url(parser_decode)
+    # TODO: Allow override of specific local, but otherwise assume default `local`?
+    parser_decode.set_defaults(func=actions.Decode)
+
+    # Encode
+    parser_encode = subparsers.add_parser('encode', help='Convert a locally editable resource into a raw one.')
+    parser_encode.add_argument('resource', nargs='+', type=str, help="The resource to encode. Could be a "
+                               "filename, resource title, or some combination of those and the service and category.")
+    parser_encode.add_argument("--local_service", type=str, help="The specific local service to use as an override.")
+    add_id_and_url(parser_encode)
+    parser_encode.set_defaults(func=actions.Encode)
 
     # Diff
+    parser_diff = subparsers.add_parser('diff', help='Compare the remote version of a resource and the local one.')
+    parser_diff.add_argument('resource', nargs='+', type=str, help="The resource to diff. Could be a "
+                             "filename, resource title, or some combination of those and the service and category.")
+    parser_diff.add_argument("--local_service", type=str, help="The specific local service to use as an override.")
+    parser_diff.add_argument("--console", action="store_true",
+                             help="Do not generate HTML file; just print to console.")
+    parser_diff.add_argument("--prevent_open", action="store_true",
+                             help="Prevent the generated HTML file from being automatically opened in your browser.")
+    add_id_and_url(parser_diff)
+    parser_diff.set_defaults(func=actions.Diff)
 
     # Push
 

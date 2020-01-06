@@ -1,8 +1,15 @@
+from html.parser import HTMLParser
+from io import StringIO
+from pprint import pprint
+
 from html2text import HTML2Text
 from markdown import Markdown
+import frontmatter
+from frontmatter.default_handlers import YAMLHandler
 
 # HTML to MARKDOWN
 # h2m
+from waltz.tools import yaml
 
 html_to_markdown = HTML2Text()
 html_to_markdown.single_line_break= False
@@ -10,7 +17,32 @@ html_to_markdown.skip_internal_links = False
 html_to_markdown._skip_a_class_check = False
 html_to_markdown._class_stack = []
 
-WALTZ_METADATA_CLASS = "waltz-metadata"
+WALTZ_METADATA_CLASS = "-waltz-metadata-hidden"
+
+
+class ExtractWaltzMetadata(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.reset()
+        self.inside_metadata = False
+        self.strict = False
+        self.convert_charrefs = True
+        self.data = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'div':
+            for name, value in attrs:
+                if name == 'class' and WALTZ_METADATA_CLASS in value.split():
+                    self.inside_metadata = True
+
+    def handle_endtag(self, tag):
+        if tag == 'div':
+            self.inside_metadata = False
+
+    def handle_data(self, data):
+        if self.inside_metadata:
+            self.data.append(data)
+
 
 def handle_custom_tags(self, tag, attrs, start):
     if self._skip_a_class_check:
@@ -39,9 +71,18 @@ def handle_custom_tags(self, tag, attrs, start):
     if tag == "div":
         # TODO: add matching behavior on other side of m2h
         if "class" in attrs and WALTZ_METADATA_CLASS in attrs['class'].split(" "):
-            styles = [style.lower().strip() for style in attrs.get('style', '').split(";")]
-            if any(style.startswith('display') and style.endswith('none') for style in styles):
-                self.out("---")
+            #styles = [style.lower().strip() for style in attrs.get('style', '').split(";")]
+            #if any(style.startswith('display') and style.endswith('none') for style in styles):
+            #if not start:
+            #    stream = StringIO()
+            #    yaml.dump(self._waltz_data, stream)
+            #    self.out("\n"+stream.getvalue()+"\n")
+            #    self._waltz_data = None
+            #self.out("---\n")
+            if start:
+                self.quiet += 1
+            else:
+                self.quiet -= 1
     if tag == "p" and 'class' in attrs:
         if not start:
             self._skip_a_class_check = True
@@ -80,14 +121,33 @@ def handle_custom_tags(self, tag, attrs, start):
 html_to_markdown.tag_callback = handle_custom_tags
 
 
-def h2m(html):
+def h2m(html, waltz_front_matter=None):
     if not html:
         return ""
-    m = html_to_markdown.handle(html)
+    # Handle front matter
+    if waltz_front_matter is None:
+        waltz_front_matter = {}
+    #html_to_markdown._waltz_data = {'waltz': waltz_front_matter}
+    metadata = ExtractWaltzMetadata()
+    metadata.feed(html)
+    if metadata.data:
+        existing_front_matter = "\n".join(metadata.data)
+        existing_front_matter = yaml.load(StringIO(existing_front_matter))
+    else:
+        existing_front_matter = {}
+    existing_front_matter.update({'waltz': waltz_front_matter})
+    stream = StringIO()
+    yaml.dump(existing_front_matter, stream)
+    markdowned = html_to_markdown.handle(html)
+    markdowned = "---\n{}---\n{}".format(stream.getvalue(), markdowned)
+    #if html_to_markdown._waltz_data is not None:
+    #    stream = StringIO()
+    #    yaml.dump(html_to_markdown._waltz_data, stream)
+    #    m = "---\n" + stream.getvalue() + "---\n" + m
     in_fenced_code = False
     skip = 0
     modified = []
-    for line in m.split("\n"):
+    for line in markdowned.split("\n"):
         if line.lstrip().startswith("```"):
             in_fenced_code = not in_fenced_code
             skip = 2 * in_fenced_code
@@ -115,9 +175,10 @@ my_extras = {
     'tables': True
 }
 
-extension_directory='waltz.markdown_tools.'
+extension_directory='waltz.tools.'
 markdowner = Markdown(extensions=[
-    'fenced_code', 'attr_list', 'meta',
+    'fenced_code', 'attr_list',
+    #'meta', # Using python-frontmatter instead
     'tables', 'codehilite', "toc",
     extension_directory+'iconfonts:IconFontsExtension',
     extension_directory+'decorate_tables:TableDecoratorExtension'
@@ -127,22 +188,47 @@ markdowner = Markdown(extensions=[
 }})
 
 
-def m2h(text, with_metadata=False):
-    result = markdowner.reset().convert(text)
-    if with_metadata:
-        return result, markdowner.Meta
-    else:
-        return result
+def m2h(text):
+    return markdowner.reset().convert(text)
 
 
-if __name__ == '__main__':
+class RuamelYamlHandler(YAMLHandler):
+    def load(self, fm, **kwargs):
+        return yaml.load(StringIO(fm))
+
+
+def extract_front_matter(text):
+    data = frontmatter.loads(text, handler=RuamelYamlHandler())
+    regular_metadata = data.metadata
+    front_matter_metadata = regular_metadata.pop('waltz')
+    return regular_metadata, front_matter_metadata, data.content
+
+
+def hide_data_in_html(data: str, html: str):
+    stream = StringIO()
+    yaml.dump(data, stream)
+    return '<div class="{tag}" style="display: none;">{data}</div>{html}'.format(
+        tag=WALTZ_METADATA_CLASS,
+        data=stream.getvalue(),
+        html=html
+    )
+
+
+def dump_front_matter(front_matter, body):
+    pass
+
+
+def main():
     print(h2m("<i>Hello</i>"))
     print(m2h("_Hello_"))
-    print(m2h("---\na:0\n---\nHello *there* you", True))
+    print(m2h("---\na:0\n---\nHello *there* you\n\nWhat's up"))
+
+    return
 
     import os
     import argparse
     from glob import glob
+
 
     parser = argparse.ArgumentParser(description='Convert html/markdown')
     parser.add_argument('input', help='What file to read as input')
@@ -162,7 +248,6 @@ if __name__ == '__main__':
         if currently[1:] not in ('html', 'md'):
             raise ValueError("Needed either .html or .md, but got: "+input_path)
 
-        m2h = lambda contents: m2h(contents)
         conversion = h2m if currently[1:] == 'html' else m2h
         convert_back = m2h if currently[1:] == 'html' else h2m
         new_extension = '.md' if currently[1:] == 'html' else '.html'
@@ -183,3 +268,6 @@ if __name__ == '__main__':
 
         with open(output_path, 'w') as output_file:
             output_file.write(contents)
+
+if __name__ == '__main__':
+    main()

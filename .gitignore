@@ -2,6 +2,8 @@ waltz_cache.sqlite
 settings/
 courses/
 .idea/
+tests/*.db
+tests/secret_testing_data.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

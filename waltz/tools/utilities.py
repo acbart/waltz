@@ -5,8 +5,6 @@ from dateutil import tz, parser
 from textwrap import indent
 import pathlib
 
-from waltz.services.canvas.canvas_tools import from_canvas_date, to_canvas_date
-
 
 def ensure_dir(file_path):
     pathlib.Path(os.path.dirname(file_path)).mkdir(parents=True, exist_ok=True)
@@ -14,8 +12,8 @@ def ensure_dir(file_path):
 
 def clean_name(filename):
     return "".join([c for c in filename
-                    if c.isalpha() or c.isdigit() 
-                       or c in (' ', '.')]).rstrip()
+                    if c.isalpha() or c.isdigit()
+                    or c in (' ', '.')]).rstrip()
 
 
 def make_safe_filename(name):
@@ -33,29 +31,48 @@ def indent4(text):
     return indent(text, '    ')
 
 
-global_settings = {'quiet': True}
-def log(*args):
-    if not global_settings['quiet']:
-        print(*args)
-
-
+CANVAS_DATE_STRING = "%Y-%m-%dT%H:%M:%SZ"
 FRIENDLY_DATE_FORMAT = "%B %d %Y, %I%M %p"
 from_zone = tz.tzutc()
 to_zone = tz.tzlocal()
+
+
+def from_canvas_date(d1):
+    return datetime.strptime(d1, CANVAS_DATE_STRING)
+
+
+def to_canvas_date(d1):
+    return d1.strftime(CANVAS_DATE_STRING)
 
 
 def to_friendly_date(canvas_date_string):
     if not canvas_date_string:
         return ''
     return (from_canvas_date(canvas_date_string)
-                      .replace(tzinfo=from_zone)
-                      .astimezone(to_zone)
-                      .strftime(FRIENDLY_DATE_FORMAT))
+            .replace(tzinfo=from_zone)
+            .astimezone(to_zone)
+            .strftime(FRIENDLY_DATE_FORMAT))
 
 
 def from_friendly_date(friendly_date_string):
     if not friendly_date_string:
         return ''
     return to_canvas_date(parser.parse(friendly_date_string)
-                                .replace(tzinfo=to_zone)
-                                .astimezone(from_zone))
+                          .replace(tzinfo=to_zone)
+                          .astimezone(from_zone))
+
+
+def to_friendly_date_from_datetime(d: datetime) -> str:
+    return d.replace(tzinfo=from_zone).astimezone(to_zone).strftime(FRIENDLY_DATE_FORMAT)
+
+
+def get_files_last_update(source_path) -> datetime:
+    return datetime.fromtimestamp(os.path.getmtime(source_path))
+
+
+def start_file(filename):
+    '''Open document with default application in Python.'''
+    try:
+        os.startfile(filename)
+    except AttributeError:
+        os.subprocess.call(['open', filename])

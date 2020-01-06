@@ -1,4 +1,4 @@
-from waltz.resource import Resource
+from waltz.resources.resource import Resource
 
 
 class BlockPyAssignment(Resource):

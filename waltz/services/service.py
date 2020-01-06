@@ -1,4 +1,5 @@
 from waltz.exceptions import WaltzException
+from waltz.defaults import get_service_types
 
 
 class Service:
@@ -10,62 +11,57 @@ class Service:
     """
     RESOURCES: 'Dict[str, Resource]'
     name: str
+    type: str
     # The service that this one extends; if None, then this is an Abstract service
-    parent: str
     settings: dict
-    default: bool
 
-    def __init__(self, name: str, parent: str, settings: dict, default=False):
+    def __init__(self, name: str, settings: dict):
         self.name = name
-        self.parent = parent
-        self.default = default
         self.settings = settings
+
+    @classmethod
+    def from_type(cls, service_type: str):
+        return get_service_types()[service_type]
 
     @classmethod
     def register_resource(cls, resource_category):
         for name in resource_category.category_names:
             cls.RESOURCES[name] = resource_category
 
+    @classmethod
+    def get_resource_base(cls, resource_category):
+        return cls.RESOURCES[resource_category]
+
     def as_data(self):
         return {
             'name': self.name,
-            'parent': self.parent,
+            'type': self.type,
             'settings': self.settings
         }
 
     @classmethod
-    def from_data(cls, data, existing_services):
+    def from_data(cls, data):
         name = data['name']
-        parent = data['parent']
-        # TODO: I flipped the order of these, but I think that's wrong. Need to approach when clear-headed
-        #       Issue is that the course version of local should clobber the parent, but is that an exception?
-        # Create a new version of this
-        if parent in existing_services:
-            old_version = existing_services[parent]
-            constructor = type(old_version)
-            old_settings = old_version.settings.copy()
-            old_settings.update(data['settings'])
-            return constructor(name, parent, old_settings)
-        # Use the existing version
-        if name in existing_services:
-            return existing_services[name]
+        settings = data['settings']
+        return cls(name, settings)
 
-        raise WaltzException("Unknown parent service '{}' for service '{}'".format(parent, name))
-
-    def copy(self, updates):
-        pass
-
-    def add_parser_copy(self, parser):
+    def service_type(self, parser):
         pass
 
     def search(self, category, resource):
         return []
 
+    @classmethod
+    def add_parser_download(cls, parser):
+        return parser
 
-def services_as_data(services):
-    return {name: service.as_data() for name, service in services.items()
-            if not service.default}
+
+def services_as_data(services_types):
+    return {name: [service.as_data() for service in services]
+            for name, services in services_types.items()}
 
 
-def services_from_data(services, existing_services):
-    return {name: Service.from_data(service, existing_services) for name, service in services.items()}
+def services_from_data(services_by_type, service_types):
+    return {name: [service_types[service['type']].from_data(service)
+                   for service in services]
+            for name, services in services_by_type.items()}

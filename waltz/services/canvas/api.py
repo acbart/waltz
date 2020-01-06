@@ -1,17 +1,6 @@
 import requests
 import time
 from json.decoder import JSONDecodeError
-from datetime import datetime
-
-CANVAS_DATE_STRING = "%Y-%m-%dT%H:%M:%SZ"
-
-
-def from_canvas_date(d1):
-    return datetime.strptime(d1, CANVAS_DATE_STRING)
-
-
-def to_canvas_date(d1):
-    return d1.strftime(CANVAS_DATE_STRING)
 
 
 def download_file(url, destination):

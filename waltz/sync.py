@@ -9,11 +9,11 @@ except:
 
 from glob import glob
 
-from waltz.yaml_setup import yaml
+from waltz.tools.yaml_setup import yaml
 
 from waltz.services.canvas.canvas_tools import get_setting, get_courses
 from waltz.services.canvas.canvas_tools import load_settings
-from waltz.utilities import global_settings, log
+from waltz.tools.utilities import global_settings, log
 from waltz.resources import (ResourceID, WaltzException,
                              Course, Page)
 

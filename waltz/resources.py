@@ -4,8 +4,8 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
 
-from waltz.utilities import (ensure_dir, make_safe_filename, indent4,
-                             make_datetime_filename, log)
+from waltz.tools.utilities import (ensure_dir, make_safe_filename, indent4,
+                                   make_datetime_filename, log)
 
 
 class WaltzException(Exception):
@@ -340,39 +340,6 @@ class Resource:
         return [cls.identify_title(r) for r in json_data]
 
 
-class Page(Resource):
-    category_names = ["page", "pages"]
-    canvas_name = 'pages'
-    canonical_category = 'pages'
-    canvas_title_field = 'title'
-    canvas_id_field = 'url'
-    extension = '.md'
-    
-    @classmethod
-    def from_json(cls, course, json_data):
-        if 'body' not in json_data:
-            data = get('{}/{}'.format(cls.canvas_name, json_data['url']),
-                       course=course.course_name)
-            json_data['body'] = data['body']
-        return cls(**json_data, course=course)
-    
-    def to_disk(self, resource):
-        return h2m(self.body)
-    
-    @classmethod
-    def from_disk(cls, course, resource_data, resource_id):
-        # Fix configuration on simpler attributes
-        return cls(body=m2h(resource_data), course=course,
-                   title=resource_id.canvas_title)
-    
-    def to_json(self, course, resource_id):
-        ''' Suitable for PUT request on API'''
-        return {
-            'wiki_page[body]': self.body,
-            'wiki_page[title]': self.title
-        }
-
-
 class Outcome(Resource):
     category_names = ["outcome", "outcomes"]
     canvas_name = 'outcomes'
@@ -477,7 +444,7 @@ class Assignment(Resource):
     def from_json(cls, course, json_data):
         return cls(**json_data, course=course)
 
-from waltz.services.canvas.quizzes import *
+from waltz.resources.quizzes import *
 
 ALL_RESOURCES = [Quiz, Page, Assignment]
 RESOURCE_CATEGORIES = {}

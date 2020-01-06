@@ -1,10 +1,8 @@
-from waltz.defaults import register_default_service
+from waltz.defaults import register_service_type
 from waltz.services.canvas.canvas import Canvas
-from waltz.services.canvas.page import Page
+from waltz.resources.page import Page
 from waltz.services.canvas.api import CanvasAPI
 
 Canvas.register_resource(Page)
 
-CANVAS = Canvas('canvas', None, {}, True)
-
-register_default_service(CANVAS)
+register_service_type(Canvas)

@@ -3,6 +3,7 @@ requests
 ruamel.yaml
 jinja2
 markdown
+python-frontmatter
 requests_cache
 python-dateutil
 html2text

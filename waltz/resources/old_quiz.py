@@ -4,12 +4,12 @@ from glob import glob
 from ruamel.yaml.comments import CommentedMap
 from ruamel.yaml.scalarstring import walk_tree
 
-from waltz.markdown_tools.html_markdown_utilities import h2m, m2h
+from waltz.tools.html_markdown_utilities import h2m, m2h
 
-from waltz.yaml_setup import yaml
+from waltz.tools.yaml_setup import yaml
 from waltz.services.canvas.canvas_tools import get, put, post, delete
 
-from waltz.utilities import (to_friendly_date, from_friendly_date)
+from waltz.tools.utilities import (to_friendly_date, from_friendly_date)
 from waltz.resources import Resource, WaltzException
 
 

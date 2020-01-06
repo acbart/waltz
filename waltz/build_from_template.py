@@ -6,7 +6,7 @@ except ImportError:
 
 from jinja2 import Template
 
-from waltz.yaml_setup import yaml
+from waltz.tools.yaml_setup import yaml
 
 
 def to_markdown(yaml_path, template_path):
