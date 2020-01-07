@@ -76,7 +76,7 @@ class Registry:
     @classmethod
     def search_up_for_waltz_registry(cls, directory):
         while True:
-            parent_directory = os.path.dirname(directory)
+            parent_directory = os.path.dirname(os.path.abspath(directory))
             if os.path.exists(cls.get_waltz_registry_path(directory)):
                 return directory
             if parent_directory == directory:
@@ -96,6 +96,7 @@ class Registry:
                 raise WaltzException("Unknown registry file version: {}\nMy version is: {}".format(
                     version, defaults.WALTZ_VERSION))
         else:
+            # TODO: default was specified? What does that mean.
             logging.warning("No registry file was detected; since default was specified, I'll create it instead.")
             Registry.init(directory)
 

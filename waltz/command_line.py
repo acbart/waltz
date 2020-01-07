@@ -109,6 +109,12 @@ def parse_command_line(args):
                                "filename, resource title, or some combination of those and the service and category.")
     parser_decode.add_argument("--local_service", type=str, help="The specific local service to use as an override.")
     parser_decode.add_argument("--destination", "-d", type=str, help="The destination directory for this resource.")
+    parser_decode.add_argument("--combine", "-c", action='store_true', default=False,
+                               help="Whether to combine all subresources into a single file.")
+    parser_decode.add_argument("--hide_answers", action='store_true', default=False,
+                               help="Whether to hide answers to any questions.")
+    parser_decode.add_argument("--banks", nargs="*", type=str,
+                               help="The question bank folders to check. First one will be the location for new questions.")
     add_id_and_url(parser_decode)
     # TODO: Allow override of specific local, but otherwise assume default `local`?
     parser_decode.set_defaults(func=actions.Decode)

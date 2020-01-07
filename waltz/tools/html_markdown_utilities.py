@@ -135,15 +135,14 @@ def h2m(html, waltz_front_matter=None):
         existing_front_matter = yaml.load(StringIO(existing_front_matter))
     else:
         existing_front_matter = {}
-    existing_front_matter.update({'waltz': waltz_front_matter})
+    if waltz_front_matter:
+        existing_front_matter.update({'waltz': waltz_front_matter})
     stream = StringIO()
     yaml.dump(existing_front_matter, stream)
     markdowned = html_to_markdown.handle(html)
-    markdowned = "---\n{}---\n{}".format(stream.getvalue(), markdowned)
-    #if html_to_markdown._waltz_data is not None:
-    #    stream = StringIO()
-    #    yaml.dump(html_to_markdown._waltz_data, stream)
-    #    m = "---\n" + stream.getvalue() + "---\n" + m
+    if existing_front_matter:
+        markdowned = "---\n{}---\n{}".format(stream.getvalue(), markdowned)
+
     in_fenced_code = False
     skip = 0
     modified = []

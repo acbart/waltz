@@ -1,0 +1,22 @@
+from waltz.resources.quizzes.essay_question import EssayQuestion
+from waltz.resources.quizzes.matching_question import MatchingQuestion
+from waltz.resources.quizzes.numerical_question import NumericalQuestion
+from waltz.resources.quizzes.quiz_question import QuizQuestion
+from waltz.resources.quizzes.fill_in_multiple_blanks_question import FillInMultipleBlanksQuestion
+from waltz.resources.quizzes.multiple_answers_question import MultipleAnswersQuestion
+from waltz.resources.quizzes.multiple_dropdowns_question import MultipleDropDownsQuestion
+from waltz.resources.quizzes.multiple_choice_question import MultipleChoiceQuestion
+from waltz.resources.quizzes.short_answer_question import ShortAnswerQuestion
+from waltz.resources.quizzes.text_only_question import TextOnlyQuestion
+from waltz.resources.quizzes.true_false_question import TrueFalseQuestion
+
+QuizQuestion.register_type(MultipleChoiceQuestion)
+QuizQuestion.register_type(TrueFalseQuestion)
+QuizQuestion.register_type(ShortAnswerQuestion)
+QuizQuestion.register_type(FillInMultipleBlanksQuestion)
+QuizQuestion.register_type(MultipleAnswersQuestion)
+QuizQuestion.register_type(MultipleDropDownsQuestion)
+QuizQuestion.register_type(MatchingQuestion)
+QuizQuestion.register_type(NumericalQuestion)
+QuizQuestion.register_type(EssayQuestion)
+QuizQuestion.register_type(TextOnlyQuestion)

@@ -5,7 +5,7 @@ from waltz.exceptions import WaltzException
 from waltz.resources.raw import RawResource
 from waltz.services.service import Service
 from waltz.tools import yaml, extract_front_matter
-from waltz.tools.utilities import make_safe_filename
+from waltz.tools.utilities import make_safe_filename, ensure_dir
 
 
 class Local(Service):
@@ -135,7 +135,7 @@ class Local(Service):
     def make_diff_filename(cls, filename):
         return make_safe_filename(filename)+".diff.html"
 
-    def find_existing(self, registry, title: str):
+    def find_existing(self, registry, title: str, check_front_matter=False):
         # Get the path to the file
         safe_filename = self.make_markdown_filename(title)
         if not os.path.exists(safe_filename):
@@ -154,6 +154,7 @@ class Local(Service):
         return safe_filename
 
     def write(self, destination_path, body):
+        ensure_dir(destination_path)
         with open(destination_path, 'w') as output_file:
             output_file.write(body)
 

@@ -1,0 +1,58 @@
+from ruamel.yaml.comments import CommentedMap
+
+from waltz.resources.canvas_resource import CanvasResource
+
+
+class QuizGroup(CanvasResource):
+    category_name = ["quiz_group", "quiz_groups"]
+    canonical_category = 'quiz_groups'
+
+    def __init__(self, **kwargs):
+        for key, value in list(kwargs.items()):
+            setattr(self, key, value)
+            del kwargs[key]
+
+    @classmethod
+    def decode_group(cls, group):
+        result = CommentedMap()
+        result['name'] = group['name']
+        result['pick'] = group['pick_count']
+        result['points'] = group['question_points']
+        result['questions'] = []
+        return result
+
+    def to_json(self, course, resource_id):
+        return {
+            'quiz_groups[][name]': self.name,
+            'quiz_groups[][pick_count]': self.pick_count,
+            'quiz_groups[][question_points]': self.question_points
+        }
+
+    @classmethod
+    def from_json(cls, course, json_data):
+        new_question = QuizGroup(course=course, **json_data)
+        return new_question
+
+    @classmethod
+    def from_disk(cls, course, yaml_data, resource_id):
+        yaml_data['pick_count'] = yaml_data.pop('pick')
+        yaml_data['question_points'] = yaml_data.pop('points')
+        return QuizGroup(course=course, **yaml_data)
+
+    def push(self, course, quiz_id, json_data, group_map):
+        '''
+        Get all the questions in this quiz
+        If this name is already in the quiz, then update it's compnents.
+        Otherwise, create a new element.
+        '''
+        if self.name in group_map:
+            id = group_map[self.name]
+            result = put("quizzes/{quiz}/groups/{group}/".format(
+                quiz=quiz_id, group=id
+            ), data=json_data, course=course.course_name)
+        else:
+            result = post("quizzes/{quiz}/groups/".format(
+                quiz=quiz_id
+            ), data=json_data, course=course.course_name)
+            new_group = result["quiz_groups"][0]
+            group_map[new_group['name']] = new_group['id']
