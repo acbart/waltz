@@ -2,8 +2,7 @@ from ruamel.yaml.comments import CommentedMap
 
 from waltz.registry import Registry
 from waltz.resources.quizzes.quiz_question import QuizQuestion
-from waltz.tools import h2m
-
+from waltz.tools import h2m, m2h
 
 
 class ShortAnswerQuestion(QuizQuestion):
@@ -22,18 +21,16 @@ class ShortAnswerQuestion(QuizQuestion):
                 result['answers'].append(a)
         return result
 
-    # TODO: upload, encode
-
-    def to_public(self, force=False):
-        return QuizQuestion.to_public(self, force)
-
     @classmethod
-    def _custom_from_disk(cls, yaml_data):
-        yaml_data['answers'] = [
+    def encode_json_raw(cls, registry: Registry, data, args):
+        result = QuizQuestion.encode_question_common(registry, data, args)
+        result['answers'] = [
             {'comments_html': m2h(answer.get('comment', "")),
              'text': answer['text']}
-            for answer in yaml_data['answers']]
-        return yaml_data
+            for answer in data['answers']]
+        return result
+
+    # TODO: upload
 
     def to_json(self, course, resource_id):
         result = QuizQuestion.to_json(self, course, resource_id)

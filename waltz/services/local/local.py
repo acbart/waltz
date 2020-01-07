@@ -135,15 +135,23 @@ class Local(Service):
     def make_diff_filename(cls, filename):
         return make_safe_filename(filename)+".diff.html"
 
-    def find_existing(self, registry, title: str, check_front_matter=False):
+    def find_existing(self, registry, title: str, check_front_matter=False, top_directories=None):
         # Get the path to the file
         safe_filename = self.make_markdown_filename(title)
         if not os.path.exists(safe_filename):
-            waltz_directory = registry.search_up_for_waltz_registry('./')
-            potential_files = [os.path.join(root, file)
-                               for root, dirs, files in os.walk(waltz_directory)
-                               for file in files
-                               if file == safe_filename]
+            if top_directories is None:
+                top_directories = [registry.search_up_for_waltz_registry('./')]
+            potential_files = []
+            for top_directory in top_directories:
+                for root, dirs, files in os.walk(top_directory):
+                    for file in files:
+                        potential_file = os.path.join(root, file)
+                        if file == safe_filename:
+                            potential_files.append(potential_file)
+                        elif check_front_matter and file.endswith(".md"):
+                            _, waltz, _ = extract_front_matter(self.read(potential_file))
+                            if waltz.get('title') == title:
+                                potential_files.append(potential_file)
             if len(potential_files) > 1:
                 raise WaltzException("Ambiguous resource named {}:\n\t{}".format(
                     safe_filename, "\n\t".join(potential for potential in potential_files)

@@ -1,6 +1,8 @@
 from ruamel.yaml.comments import CommentedMap
 
+from waltz.registry import Registry
 from waltz.resources.canvas_resource import CanvasResource
+from waltz.resources.quizzes import QuizQuestion
 
 
 class QuizGroup(CanvasResource):
@@ -15,11 +17,31 @@ class QuizGroup(CanvasResource):
     @classmethod
     def decode_group(cls, group):
         result = CommentedMap()
-        result['name'] = group['name']
+        result['group'] = group['name']
         result['pick'] = group['pick_count']
         result['points'] = group['question_points']
         result['questions'] = []
         return result
+
+    @classmethod
+    def encode_group(cls, registry: Registry, data, args):
+        return {
+            'name': data['group'],
+            'pick_count': data['pick'],
+            'question_points': data['points']
+        }
+
+    @classmethod
+    def encode_questions(cls, registry: Registry, data, args):
+        questions = []
+        for question in data['questions']:
+            if isinstance(question, str):
+                encoded = QuizQuestion.encode_question_by_title(registry, question, args)
+            else:
+                encoded = QuizQuestion.encode_question(registry, question, args)
+            encoded['quiz_group_id'] = data['group']
+            questions.append(encoded)
+        return questions
 
     def to_json(self, course, resource_id):
         return {

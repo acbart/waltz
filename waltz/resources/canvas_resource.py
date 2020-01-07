@@ -71,7 +71,7 @@ class CanvasResource(Resource):
         local = registry.get_service(args.local_service, 'local')
         source_path = local.find_existing(registry, args.title)
         decoded_markdown = local.read(source_path)
-        data = cls.encode_json(decoded_markdown)
+        data = cls.encode_json(registry, decoded_markdown, args)
         registry.store_resource(args.service, cls.name, args.title, "", data)
 
     @classmethod
@@ -110,9 +110,9 @@ class CanvasResource(Resource):
 
     @classmethod
     def decode_json(cls, registry: Registry, data, args):
-        raise NotImplemented()
+        raise NotImplementedError(repr(data))
 
     @classmethod
-    def encode_json(cls, data):
-        raise NotImplemented()
+    def encode_json(cls, registry: Registry, data, args):
+        raise NotImplementedError(repr(data))
 

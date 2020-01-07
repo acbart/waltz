@@ -15,7 +15,7 @@ from waltz.resources.raw import RawResource
 from waltz.resources.resource import Resource
 from waltz.tools.html_markdown_utilities import hide_data_in_html, m2h
 from waltz.tools.utilities import get_files_last_update, from_canvas_date, to_friendly_date_from_datetime, start_file, \
-    to_friendly_date
+    to_friendly_date, from_friendly_date
 
 
 class Quiz(CanvasResource):
@@ -100,7 +100,8 @@ class Quiz(CanvasResource):
         result['published'] = raw_data['published']
         result['settings'] = CommentedMap()
         result['settings']['quiz_type'] = raw_data['quiz_type']
-        result['settings']['points_possible'] = raw_data['points_possible']
+        if raw_data.get('points_possible') is not None:
+            result['settings']['points_possible'] = raw_data['points_possible']
         result['settings']['allowed_attempts'] = raw_data['allowed_attempts']
         result['settings']['scoring_policy'] = raw_data['scoring_policy']
         result['settings']['timing'] = CommentedMap()
@@ -139,14 +140,54 @@ class Quiz(CanvasResource):
                 result['questions'].append(quiz_question)
         return h2m(raw_data['description'], result)
 
-
     @classmethod
-    def encode_json(cls, decoded_markdown):
-        regular, waltz, body = extract_front_matter(decoded_markdown)
+    def encode_json(cls, registry: Registry, data, args):
+        regular, waltz, body = extract_front_matter(data)
+        settings = waltz.get('settings', {})
+        timing = settings.get('timing', {})
+        secrecy = settings.get('secrecy', {})
         body = hide_data_in_html(regular, m2h(body))
+        questions = []
+        groups = []
+        for question in waltz.get('questions', []):
+            if isinstance(question, str):
+                # Look up quiz question name
+                questions.append(QuizQuestion.encode_question_by_title(registry, question, args))
+            elif 'group' in question:
+                # This is a question group
+                groups.append(QuizGroup.encode_group(registry, question, args))
+                questions.extend(QuizGroup.encode_questions(registry, question, args))
+            else:
+                # This is an embedded question
+                questions.append(QuizQuestion.encode_question(registry, question, args))
+        # TODO: total_estimated_points from the questions
         return json.dumps({
             'title': waltz['title'],
-            'published': waltz['published'],
-            'body': body
+            'published': waltz.get('published', False),
+            'description': body,
+            # Settings
+            'quiz_type': settings.get('quiz_type', 'assignment'),
+            'points_possible': settings.get('points_possible'),
+            'allowed_attempts': settings.get('allowed_attempts'),
+            'scoring_policy': settings.get('scoring_policy'),
+            # Timing
+            'due_at': from_friendly_date(timing.get('due_at')),
+            'unlock_at': from_friendly_date(timing.get('unlock_at')),
+            'lock_at': from_friendly_date(timing.get('lock_at')),
+            # Secrecy
+            'one_question_at_a_time': secrecy.get('one_question_at_a_time'),
+            'shuffle_answers': secrecy.get('shuffle_answers'),
+            'time_limit': secrecy.get('time_limit'),
+            'cant_go_back': secrecy.get('cant_go_back'),
+            'show_correct_answers': secrecy.get('show_correct_answers'),
+            'show_correct_answers_last_attempt': secrecy.get('show_correct_answers_last_attempt'),
+            'show_correct_answers_at': secrecy.get('show_correct_answers_at'),
+            'hide_correct_answers_at': secrecy.get('hide_correct_answers_at'),
+            'hide_results': secrecy.get('hide_results'),
+            'one_time_results': secrecy.get('one_time_results'),
+            'access_code': secrecy.get('access_code'),
+            'ip_filter': secrecy.get('ip_filter'),
             # TODO: Other fields
+            'questions': questions,
+            'groups': groups
         })

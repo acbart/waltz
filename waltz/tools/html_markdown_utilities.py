@@ -140,9 +140,6 @@ def h2m(html, waltz_front_matter=None):
     stream = StringIO()
     yaml.dump(existing_front_matter, stream)
     markdowned = html_to_markdown.handle(html)
-    if existing_front_matter:
-        markdowned = "---\n{}---\n{}".format(stream.getvalue(), markdowned)
-
     in_fenced_code = False
     skip = 0
     modified = []
@@ -158,7 +155,10 @@ def h2m(html, waltz_front_matter=None):
             modified.append(line)
         else:
             modified.append(line)
-    return ("\n".join(modified)).strip()
+    markdowned = ("\n".join(modified)).strip()
+    if existing_front_matter:
+        markdowned = "---\n{}---\n{}".format(stream.getvalue(), markdowned)
+    return markdowned
   
 # Markdown to HTML
 # m2h
@@ -199,18 +199,21 @@ class RuamelYamlHandler(YAMLHandler):
 def extract_front_matter(text):
     data = frontmatter.loads(text, handler=RuamelYamlHandler())
     regular_metadata = data.metadata
-    front_matter_metadata = regular_metadata.pop('waltz')
+    front_matter_metadata = regular_metadata.pop('waltz', {})
     return regular_metadata, front_matter_metadata, data.content
 
 
-def hide_data_in_html(data: str, html: str):
-    stream = StringIO()
-    yaml.dump(data, stream)
-    return '<div class="{tag}" style="display: none;">{data}</div>{html}'.format(
-        tag=WALTZ_METADATA_CLASS,
-        data=stream.getvalue(),
-        html=html
-    )
+def hide_data_in_html(data, html: str):
+    if data:
+        stream = StringIO()
+        yaml.dump(data, stream)
+        return '<div class="{tag}" style="display: none;">{data}</div>{html}'.format(
+            tag=WALTZ_METADATA_CLASS,
+            data=stream.getvalue(),
+            html=html
+        )
+    else:
+        return html
 
 
 def dump_front_matter(front_matter, body):
@@ -221,6 +224,7 @@ def main():
     print(h2m("<i>Hello</i>"))
     print(m2h("_Hello_"))
     print(m2h("---\na:0\n---\nHello *there* you\n\nWhat's up"))
+    print(repr(h2m("<p>Oh I wrote something!</p>\n<p>Here's another line.</p>")))
 
     return
 

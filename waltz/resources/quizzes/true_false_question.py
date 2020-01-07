@@ -2,7 +2,7 @@ from ruamel.yaml.comments import CommentedMap
 
 from waltz.registry import Registry
 from waltz.resources.quizzes.quiz_question import QuizQuestion
-from waltz.tools import h2m
+from waltz.tools import h2m, m2h
 
 
 class TrueFalseQuestion(QuizQuestion):
@@ -24,18 +24,19 @@ class TrueFalseQuestion(QuizQuestion):
                 result['comments'] = comments
         return result
 
-    # TODO: upload, encode
-
     @classmethod
-    def _custom_from_disk(cls, yaml_data):
-        yaml_data['answers'] = [
-            {'comments_html': m2h(yaml_data.get('true_comment', "")),
-             'weight': 100 if yaml_data['answer'] else 0,
+    def encode_json_raw(cls, registry: Registry, data, args):
+        result = QuizQuestion.encode_question_common(registry, data, args)
+        result['answers'] = [
+            {'comments_html': m2h(data.get('if_true_chosen', "")),
+             'weight': 100 if data['answer'] else 0,
              'text': 'True'},
-            {'comments_html': m2h(yaml_data.get('false_comment', "")),
-             'weight': 100 if not yaml_data['answer'] else 0,
+            {'comments_html': m2h(data.get('if_false_chosen', "")),
+             'weight': 100 if not data['answer'] else 0,
              'text': 'False'}]
-        return yaml_data
+        return result
+
+    # TODO: upload
 
     def to_json(self, course, resource_id):
         result = QuizQuestion.to_json(self, course, resource_id)

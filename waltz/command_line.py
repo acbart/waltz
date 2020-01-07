@@ -124,6 +124,8 @@ def parse_command_line(args):
     parser_encode.add_argument('resource', nargs='+', type=str, help="The resource to encode. Could be a "
                                "filename, resource title, or some combination of those and the service and category.")
     parser_encode.add_argument("--local_service", type=str, help="The specific local service to use as an override.")
+    parser_encode.add_argument("--banks", nargs="*", type=str,
+                               help="The question bank folders to check.")
     add_id_and_url(parser_encode)
     parser_encode.set_defaults(func=actions.Encode)
 

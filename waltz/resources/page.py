@@ -53,8 +53,8 @@ class Page(CanvasResource):
         })
 
     @classmethod
-    def encode_json(cls, decoded_markdown):
-        regular, waltz, body = extract_front_matter(decoded_markdown)
+    def encode_json(cls, registry: Registry, data: str, args):
+        regular, waltz, body = extract_front_matter(data)
         body = hide_data_in_html(regular, m2h(body))
         return json.dumps({
             'title': waltz['title'],

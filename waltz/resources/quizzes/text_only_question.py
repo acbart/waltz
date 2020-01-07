@@ -12,11 +12,11 @@ class TextOnlyQuestion(QuizQuestion):
     def decode_json_raw(cls, registry: Registry, data, args):
         return QuizQuestion.decode_question_common(registry, data, args)
 
-    # TODO: upload, encode
-
     @classmethod
-    def _custom_from_disk(cls, yaml_data):
-        return yaml_data
+    def encode_json_raw(cls, registry: Registry, data, args):
+        return QuizQuestion.encode_question_common(registry, data, args)
+
+    # TODO: upload
 
     def to_json(self, course, resource_id):
         return QuizQuestion.to_json(self, course, resource_id)

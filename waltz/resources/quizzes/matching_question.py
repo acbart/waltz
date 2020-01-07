@@ -2,7 +2,7 @@ from ruamel.yaml.comments import CommentedMap
 
 from waltz.registry import Registry
 from waltz.resources.quizzes.quiz_question import QuizQuestion
-from waltz.tools import h2m
+from waltz.tools import h2m, m2h
 
 
 class MatchingQuestion(QuizQuestion):
@@ -28,23 +28,17 @@ class MatchingQuestion(QuizQuestion):
             result["distractors"] = data['matching_answer_incorrect_matches'].split("\n")
         return result
 
-    # TODO: upload, encode
-
-    def to_public(self, force=False):
-        result = QuizQuestion.to_public(self, force)
-        result['answers'] = CommentedMap()
-        result['answers']['lefts'] = list(sorted(set([answer['left'] for answer in self.answers])))
-        result['answers']['rights'] = list(sorted(set([answer['right'] for answer in self.answers])))
+    @classmethod
+    def encode_json_raw(cls, registry: Registry, data, args):
+        result = QuizQuestion.encode_question_common(registry, data, args)
+        result['matching_answer_incorrect_matches'] = "\n".join(data.get('incorrect_matches', []))
+        result['answers'] = [{'comments_html': m2h(answer.get('comment', '')),
+                              'left': answer['left'],
+                              'right': answer['right']}
+                             for answer in data['answers']]
         return result
 
-    @classmethod
-    def _custom_from_disk(cls, yaml_data):
-        yaml_data['matching_answer_incorrect_matches'] = yaml_data.pop('incorrect_matches', '')
-        yaml_data['answers'] = [{'comments_html': m2h(answer.get('comment', '')),
-                                 'left': answer['left'],
-                                 'right': answer['right']}
-                                for answer in yaml_data['answers']]
-        return yaml_data
+    # TODO: upload
 
     def to_json(self, course, resource_id):
         result = QuizQuestion.to_json(self, course, resource_id)
