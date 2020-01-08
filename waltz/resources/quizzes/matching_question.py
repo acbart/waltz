@@ -38,12 +38,11 @@ class MatchingQuestion(QuizQuestion):
                              for answer in data['answers']]
         return result
 
-    # TODO: upload
-
-    def to_json(self, course, resource_id):
-        result = QuizQuestion.to_json(self, course, resource_id)
-        result['question[matching_answer_incorrect_matches]'] = self.matching_answer_incorrect_matches
-        for index, answer in enumerate(self.answers):
+    @classmethod
+    def _make_canvas_upload_raw(cls, registry: Registry, data, args):
+        result = QuizQuestion._make_canvas_upload_common(registry, data, args)
+        result['question[matching_answer_incorrect_matches]'] = data['matching_answer_incorrect_matches']
+        for index, answer in enumerate(data['answers']):
             base = 'question[answers][{index}]'.format(index=index)
             result[base + "[answer_match_left]"] = answer['left']
             result[base + "[answer_match_right]"] = answer['right']

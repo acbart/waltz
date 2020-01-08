@@ -43,11 +43,12 @@ class QuizGroup(CanvasResource):
             questions.append(encoded)
         return questions
 
-    def to_json(self, course, resource_id):
+    @classmethod
+    def _make_canvas_upload(cls, registry: Registry, data, args):
         return {
-            'quiz_groups[][name]': self.name,
-            'quiz_groups[][pick_count]': self.pick_count,
-            'quiz_groups[][question_points]': self.question_points
+            'quiz_groups[][name]': data['name'],
+            'quiz_groups[][pick_count]': data['pick_count'],
+            'quiz_groups[][question_points]': data['question_points']
         }
 
     @classmethod

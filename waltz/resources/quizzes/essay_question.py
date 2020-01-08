@@ -16,7 +16,6 @@ class EssayQuestion(QuizQuestion):
     def encode_json_raw(cls, registry: Registry, data, args):
         return QuizQuestion.encode_question_common(registry, data, args)
 
-    # TODO: upload
-
-    def to_json(self, course, resource_id):
-        return QuizQuestion.to_json(self, course, resource_id)
+    @classmethod
+    def _make_canvas_upload_raw(cls, registry: Registry, data, args):
+        return QuizQuestion._make_canvas_upload_common(registry, data, args)

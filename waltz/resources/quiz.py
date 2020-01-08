@@ -6,6 +6,7 @@ from pprint import pprint
 
 from ruamel.yaml.comments import CommentedMap
 
+from waltz.exceptions import WaltzException
 from waltz.registry import Registry
 from waltz.resources.canvas_resource import CanvasResource
 from waltz.resources.quizzes.quiz_group import QuizGroup
@@ -15,7 +16,7 @@ from waltz.resources.raw import RawResource
 from waltz.resources.resource import Resource
 from waltz.tools.html_markdown_utilities import hide_data_in_html, m2h
 from waltz.tools.utilities import get_files_last_update, from_canvas_date, to_friendly_date_from_datetime, start_file, \
-    to_friendly_date, from_friendly_date
+    to_friendly_date, from_friendly_date, json_bool
 
 
 class Quiz(CanvasResource):
@@ -58,15 +59,123 @@ class Quiz(CanvasResource):
     @classmethod
     def upload(cls, registry: Registry, args):
         canvas = registry.get_service(args.service, "canvas")
+        # Get the local version
         raw_resource = registry.find_resource(title=args.title, service=args.service,
-                                              category=args.category, disambiguate=args.url)
-        full_page = json.loads(raw_resource.data)
-        # TODO: fix post
-        canvas.api.put(cls.endpoint+"pages/{url}".format(url=full_page['title']), data={
-            'wiki_page[title]': full_page['title'],
-            'wiki_page[body]': full_page['body'],
-            'wiki_page[published]': full_page['published']
-        })
+                                              category=args.category, disambiguate=args.id)
+        local_quiz = json.loads(raw_resource.data)
+        # Get the remote version
+        remote_quiz = cls.find(canvas, args.title)
+        # Either put or post the quiz
+        if remote_quiz is None:
+            cls.upload_new(registry, local_quiz, args)
+        else:
+            cls.upload_edit(registry, remote_quiz, local_quiz, args)
+
+    @classmethod
+    def upload_new(cls, registry: Registry, local_quiz, args):
+        canvas = registry.get_service(args.service, "canvas")
+        quiz_data = cls._make_canvas_upload(registry, local_quiz, args)
+        created_quiz = canvas.api.post('quizzes/', data=quiz_data)
+        # Create the groups
+        group_name_to_id = {}
+        for group in local_quiz['groups']:
+            group_data = QuizGroup._make_canvas_upload(registry, group, args)
+            created_group = canvas.api.post('quizzes/{quiz_id}/groups'.format(quiz_id=created_quiz['id']),
+                                            data=group_data)
+            created_group = created_group['quiz_groups'][0]  # acbart: Weird response type
+            # acbart: Okay because names are strings and IDs are ints
+            group_name_to_id[created_group['name']] = created_group['id']
+            group_name_to_id[created_group['id']] = created_group['id']
+        # Create the questions
+        for question in local_quiz['questions']:
+            if question['quiz_group_id'] is not None:
+                question['quiz_group_id'] = group_name_to_id[question['quiz_group_id']]
+            question_data = QuizQuestion._make_canvas_upload(registry, question, args)
+            created_question = canvas.api.post('quizzes/{quiz_id}/questions'.format(quiz_id=created_quiz['id']),
+                                               data=question_data)
+
+
+    @classmethod
+    def upload_edit(cls, registry: Registry, old_quiz, new_quiz, args):
+        canvas = registry.get_service(args.service, "canvas")
+        quiz_id = old_quiz['id']
+        # Edit the quiz on canvas
+        quiz_data = cls._make_canvas_upload(registry, new_quiz, args)
+        canvas.api.put('quizzes/{quiz_id}'.format(quiz_id=quiz_id), data=quiz_data)
+        # Get all the questions old information
+        questions = canvas.api.get('quizzes/{quiz_id}/questions/'.format(quiz_id=quiz_id), retrieve_all=True)
+        if 'errors' in questions:
+            raise WaltzException("Errors in Canvas data: " + repr(questions))
+        # Determine all the existing groups
+        old_group_ids = {question['quiz_group_id'] for question in questions
+                     if question['quiz_group_id'] is not None}
+        old_groups = [canvas.api.get('quizzes/{qid}/groups/{gid}'.format(qid=quiz_id, gid=gid))
+                      for gid in old_group_ids]
+        old_group_map = {}
+        for group in old_groups:
+            old_group_map[group['name']] = group
+            old_group_map[group['id']] = group
+        # Update groups with the same name and create new ones
+        used_groups = {}
+        for group in new_quiz['groups']:
+            group_data = QuizGroup._make_canvas_upload(registry, group, args)
+            if group['name'] in old_group_map:
+                canvas_group = old_group_map[group['name']]
+                canvas_group = canvas.api.put('quizzes/{quiz_id}/groups/{group_id}'.format(quiz_id=quiz_id,
+                                                                                           group_id=canvas_group['id']),
+                                              data=group_data)
+            else:
+                canvas_group = canvas.api.post('quizzes/{quiz_id}/groups'.format(quiz_id=quiz_id),
+                                               data=group_data)
+            canvas_group = canvas_group['quiz_groups'][0] # acbart: Weird response type
+            used_groups[canvas_group['name']] = canvas_group
+            used_groups[canvas_group['id']] = canvas_group
+        # Delete any groups that no longer have a reference
+        for old_group in old_groups:
+            if old_group['id'] not in used_groups:
+                canvas.api.delete('quizzes/{quiz_id}/groups/{group_id}'.format(quiz_id=quiz_id,
+                                                                               group_id=old_group['id']))
+                print("Deleted question group", old_group['name'], " (ID: {})".format(old_group['id']))
+        # Push all the questions
+        name_map = {q['question_name']: q for q in questions}
+        used_questions = {}
+        for new_question in new_quiz['questions']:
+            if new_question.get('quiz_group_id') is not None:
+                new_question['quiz_group_id'] = used_groups[new_question['quiz_group_id']]['id']
+            question_data = QuizQuestion._make_canvas_upload(registry, new_question, args)
+            if new_question['question_name'] in name_map:
+                canvas_question = name_map[new_question['question_name']]
+                canvas_question = canvas.api.put('quizzes/{quiz_id}/questions/{question_id}'.format(quiz_id=quiz_id,
+                                                                                                    question_id=canvas_question['id']),
+                                                 data=question_data)
+            else:
+                canvas_question = canvas.api.post('quizzes/{quiz_id}/questions'.format(quiz_id=quiz_id),
+                                                  data=question_data)
+            used_questions[canvas_question['id']] = canvas_question
+        # Delete any old questions
+        for question in questions:
+            if question['id'] not in used_questions:
+                canvas.api.delete('quizzes/{quiz_id}/questions/{question_id}'.format(quiz_id=quiz_id,
+                                                                                     question_id=question['id']))
+                print("Deleted question", question['name'], " (ID: {})".format(question['id']))
+
+    REQUIRED_UPLOAD_FIELDS = ['title', 'description', 'quiz_type']
+    OPTIONAL_UPLOAD_FIELDS = ['time_limit', 'shuffle_answers', 'hide_results',
+                              'show_correct_answers', 'show_correct_answers_last_attempt',
+                              'show_correct_answers_at', 'hide_correct_answers_at',
+                              'allowed_attempts', 'scoring_policy', 'one_question_at_a_time',
+                              'cant_go_back', 'access_code', 'ip_filter', 'due_at',
+                              'lock_at', 'unlock_at', 'published', 'one_time_results']
+
+    @classmethod
+    def _make_canvas_upload(cls, registry: Registry, quiz, args):
+        payload = {'quiz[notify_of_update]': 'false'}
+        for field in cls.REQUIRED_UPLOAD_FIELDS:
+            payload["quiz[{}]".format(field)] = json.dumps(quiz[field])
+        for field in cls.OPTIONAL_UPLOAD_FIELDS:
+            if field in quiz:
+                payload["quiz[{}]".format(field)] = json.dumps(quiz[field])
+        return payload
 
     @classmethod
     def download(cls, registry: Registry, args):
@@ -187,7 +296,41 @@ class Quiz(CanvasResource):
             'one_time_results': secrecy.get('one_time_results'),
             'access_code': secrecy.get('access_code'),
             'ip_filter': secrecy.get('ip_filter'),
-            # TODO: Other fields
+            # Questions and Groups
             'questions': questions,
             'groups': groups
         })
+
+    @classmethod
+    def diff(cls, registry: Registry, args):
+        # Get local version
+        local = registry.get_service(args.local_service, 'local')
+        source_path = None
+        try:
+            source_path = local.find_existing(registry, args.title)
+        except FileNotFoundError:
+            print("No local version of {}".format(args.title))
+        # Get remote version
+        canvas = registry.get_service(args.service, "canvas")
+        resource_json = cls.find(canvas, args.title)
+        if resource_json is None:
+            print("No canvas version of {}".format(args.title))
+        # Do the diff if we can
+        if not source_path or not resource_json:
+            return False
+        local_markdown = local.read(source_path)
+        remote_markdown = cls.decode_json(registry, resource_json, args)
+        if args.console:
+            differences = difflib.ndiff(local_markdown.splitlines(True), remote_markdown.splitlines(True))
+            for difference in differences:
+                print(difference, end="")
+        else:
+            html_differ = difflib.HtmlDiff(wrapcolumn=60)
+            html_diff = html_differ.make_file(local_markdown.splitlines(), remote_markdown.splitlines(),
+                                              fromdesc="Local: {}".format(source_path),
+                                              todesc="Canvas: {}".format(args.title))
+            local_diff_path = local.make_diff_filename(args.title)
+            local_diff_path = os.path.join(os.path.dirname(source_path), local_diff_path)
+            local.write(local_diff_path, html_diff)
+            if not args.prevent_open:
+                start_file(local_diff_path)

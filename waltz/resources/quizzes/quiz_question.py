@@ -27,8 +27,6 @@ class QuizQuestion(CanvasResource):
 
     @classmethod
     def decode_question(cls, registry: Registry, question, quiz, args):
-        if question['question_type'] not in cls.TYPES:
-            return "NotImplementedYet"
         question_type = cls.TYPES[question['question_type']]
         if args.combine:
             raw = question_type.decode_json_raw(registry, question, args)
@@ -122,101 +120,29 @@ class QuizQuestion(CanvasResource):
         waltz['question_text'] = body
         return cls.encode_question(registry, waltz, args)
 
-    def __init__(self, **kwargs):
-        for key, value in list(kwargs.items()):
-            setattr(self, key, value)
-            del kwargs[key]
-        self.bank_source = False
-        return
+    @classmethod
+    def _make_canvas_upload(cls, registry: Registry, question, args):
+        question_type = cls.TYPES[question['question_type']]
+        return question_type._make_canvas_upload_raw(registry, question, args)
 
+    @classmethod
+    def _make_canvas_upload_raw(cls, registry: Registry, question, args):
+        raise NotImplementedError(question['question_type'])
 
-
-
-    def to_json(self, course, resource_id):
+    @classmethod
+    def _make_canvas_upload_common(cls, registry: Registry, data, args):
         return {
-            'question[question_type]': self.question_type,
-            'question[question_name]': self.question_name,
-            'question[question_text]': self.question_text,
-            'question[quiz_group_id]': self.quiz_group_id,
-            'question[points_possible]': self.points_possible,
-            'question[correct_comments_html]': self.correct_comments_html,
-            'question[incorrect_comments_html]': self.incorrect_comments_html,
-            'question[neutral_comments_html]': self.neutral_comments_html,
+            'question[question_type]': data['question_type'],
+            'question[question_name]': data['question_name'],
+            'question[question_text]': data['question_text'],
+            'question[quiz_group_id]': data.get('quiz_group_id'),
+            'question[points_possible]': data['points_possible'],
+            'question[correct_comments_html]': data['correct_comments_html'],
+            'question[incorrect_comments_html]': data['incorrect_comments_html'],
+            'question[neutral_comments_html]': data['neutral_comments_html'],
         }
 
-    @classmethod
-    def _lookup_quiz_id(cls, quiz_id, group_id, course):
-        if (quiz_id, group_id) in cls.QUESTION_GROUP_CACHE_ID:
-            return cls.QUESTION_GROUP_CACHE_ID[(quiz_id, group_id)]
-        group = get('quizzes/{qid}/groups/{gid}'.format(qid=quiz_id,
-                                                        gid=group_id),
-                    course=course.course_name)
-        cls.QUESTION_GROUP_CACHE_ID[id] = group
-        return group
 
-    @classmethod
-    def from_json(cls, course, json_data, group_map):
-        # TODO: Match up to bank question and diff
-        question_name = json_data['question_name']
-        question_type = json_data['question_type']
-        bank_question = cls.by_name(question_name, course)
-        actual_class = QUESTION_TYPES[question_type]
-        if json_data['quiz_group_id']:
-            group = group_map[json_data['quiz_group_id']]
-        else:
-            group = None
-        new_question = actual_class(course=course, quiz_group_name=group,
-                                    **json_data)
-
-        # Use cached version
-        if new_question == bank_question:
-            return bank_question
-
-        if bank_question is not None:
-            QuizQuestion.update_bank(course, question_name,
-                                     bank_question.bank_source, new_question)
-
-        return new_question
-
-    @classmethod
-    def update_bank(cls, course, question_name, bank_source, new_question):
-        course.backup_bank(bank_source)
-        course_cache = cls.CACHE[course.course_name]
-        course_cache[question_name] = new_question
-        # Grab the names of the old questions
-        kept_question_names = []
-        with open(bank_source) as bank_file:
-            questions = yaml.load(bank_file)
-            for question in questions:
-                question_name = question['question_name']
-                kept_question_names.append(['question_name'])
-        # Get the actual up-to-date questions
-        questions = [course_cache[name].to_disk(force=True)
-                     for name in kept_question_names]
-        # Dump them back into the file
-        walk_tree(questions)
-        with open(bank_source, 'w') as bank_file:
-            yaml.dump(questions, bank_file)
-
-    def _custom_from_disk(cls, yaml_data):
-        pass
-
-    @classmethod
-    def from_disk(cls, course, yaml_data, resource_id):
-        question_type = yaml_data['question_type']
-        actual_class = QUESTION_TYPES[question_type]
-        yaml_data['question_text'] = m2h(yaml_data['question_text'])
-        # Fix simplifications of comments
-        for label in ['correct_comments', 'incorrect_comments', 'neutral_comments']:
-            yaml_data[label + "_html"] = m2h(yaml_data.pop(label, ""))
-        yaml_data['quiz_group_id'] = yaml_data.pop('group', None)
-        # Fix answers
-        actual_class._custom_from_disk(yaml_data)
-        # Load the appropriate type
-        if isinstance(yaml_data, str):
-            return QuizQuestion.by_name(yaml_data['question_name'], course)
-        else:
-            return actual_class(course=course, **yaml_data)
 
     def push(self, course, quiz_id, name_map, json_data):
         '''

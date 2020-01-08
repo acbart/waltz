@@ -25,8 +25,7 @@ class CanvasResource(Resource):
         resources = canvas.api.get(cls.endpoint, retrieve_all=True, data={"search_term": title})
         for resource in resources:
             if resource['title'] == title:
-                full_quiz = canvas.api.get(cls.endpoint + str(resource[cls.id]))
-                return json.dumps(full_quiz)
+                return canvas.api.get(cls.endpoint + str(resource[cls.id]))
         return None
 
     @classmethod
@@ -34,6 +33,7 @@ class CanvasResource(Resource):
         canvas = registry.get_service(args.service, "canvas")
         resource_json = cls.find(canvas, args.title)
         if resource_json is not None:
+            resource_json = json.dumps(resource_json)
             print("I found: ", args.title)
             registry.store_resource(canvas.name, cls.name, args.title, "", resource_json)
             return resource_json
@@ -92,7 +92,7 @@ class CanvasResource(Resource):
         if not source_path or not resource_json:
             return False
         local_markdown = local.read(source_path)
-        remote_markdown = cls.decode_json(resource_json)
+        remote_markdown = cls.decode_json(registry, json.dumps(resource_json), args)
         if args.console:
             differences = difflib.ndiff(local_markdown.splitlines(True), remote_markdown.splitlines(True))
             for difference in differences:

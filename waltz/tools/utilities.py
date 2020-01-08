@@ -23,6 +23,10 @@ def make_safe_filename(name):
     return filename
 
 
+def json_bool(boolean_value):
+    return 'true' if boolean_value else 'false'
+
+
 def make_datetime_filename():
     return datetime.now().strftime('%Y-%b-%d_%H-%M-%S')
 

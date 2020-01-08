@@ -38,13 +38,12 @@ class MultipleChoiceQuestion(QuizQuestion):
             for answer in data['answers']]
         return result
 
-    # TODO: upload
-
-    def to_json(self, course, resource_id):
-        result = QuizQuestion.to_json(self, course, resource_id)
-        for index, answer in enumerate(self.answers):
+    @classmethod
+    def _make_canvas_upload_raw(cls, registry: Registry, data, args):
+        result = QuizQuestion._make_canvas_upload_common(registry, data, args)
+        for index, answer in enumerate(data['answers']):
             base = 'question[answers][{index}]'.format(index=index)
-            result[base +"[answer_html]"] = self._get_first_field(answer, 'html', 'text')
-            result[base +"[answer_comment_html]"] = self._get_first_field(answer, 'comments_html', 'comments')
-            result[base +"[answer_weight]"] = answer['weight']
+            result[base + "[answer_html]"] = answer['html']
+            result[base + "[answer_comment_html]"] = answer['comments_html']
+            result[base + "[answer_weight]"] = answer['weight']
         return result
