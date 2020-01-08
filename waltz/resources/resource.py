@@ -1,14 +1,6 @@
 from typing import List
 
 
-class Style:
-    pass
-
-
-class Difference:
-    pass
-
-
 class Resource:
     """
     A representation of some course material. Resources have various Actions that you can use
@@ -40,7 +32,6 @@ class Resource:
     name: str
     id: str
     category_names: List[str]
-    styles: List[Style]
     default_service: str
 
 

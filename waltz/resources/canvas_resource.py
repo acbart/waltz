@@ -2,6 +2,7 @@ import difflib
 import json
 import os
 
+from waltz.exceptions import WaltzException
 from waltz.registry import Registry
 from waltz.resources.resource import Resource
 from waltz.tools.utilities import start_file
@@ -14,6 +15,7 @@ class CanvasResource(Resource):
     category_names: str
     id: str
     default_service = 'canvas'
+    title_attribute: str = 'title'
 
     DIFF_TEMPLATE = """
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
@@ -53,7 +55,7 @@ class CanvasResource(Resource):
         # TODO: Change canvas -> registry, title -> args
         resources = canvas.api.get(cls.endpoint, retrieve_all=True, data={"search_term": title})
         for resource in resources:
-            if resource['title'] == title:
+            if resource[cls.title_attribute] == title:
                 return canvas.api.get(cls.endpoint + str(resource[cls.id]))
         return None
 
@@ -62,8 +64,12 @@ class CanvasResource(Resource):
         canvas = registry.get_service(args.service, "canvas")
         resource_json = cls.find(canvas, args.title)
         if resource_json is not None:
+            try:
+                registry.find_resource(canvas.name, cls.name, args.title, "")
+                print("Downloaded new version of {}: ".format(cls.name), args.title)
+            except WaltzException:
+                print("Downloaded new {}:".format(cls.name), args.title)
             resource_json = json.dumps(resource_json)
-            print("I found: ", args.title)
             registry.store_resource(canvas.name, cls.name, args.title, "", resource_json)
             return resource_json
         cls.find_similar(registry, canvas, args)

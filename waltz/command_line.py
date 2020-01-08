@@ -158,6 +158,20 @@ def parse_command_line(args):
     parser_push.set_defaults(func=actions.Push)
 
     # Pull
+    parser_pull = subparsers.add_parser('pull',
+                                        help='Download a raw resource and convert it to a locally editable one.')
+    parser_pull.add_argument('resource', nargs='+', type=str, help="The resource to download and decode. Could be a "
+                                                                   "filename, resource title, or some combination of those and the service and category.")
+    parser_pull.add_argument("--local_service", type=str, help="The specific local service to use as an override.")
+    parser_pull.add_argument("--banks", nargs="*", type=str,
+                             help="The question bank folders to check.")
+    parser_pull.add_argument("--combine", "-c", action='store_true', default=False,
+                             help="Whether to combine all subresources into a single file.")
+    parser_pull.add_argument("--hide_answers", action='store_true', default=False,
+                             help="Whether to hide answers to any questions.")
+    parser_pull.add_argument("--destination", "-d", type=str, help="The destination directory for this resource.")
+    add_id_and_url(parser_pull)
+    parser_pull.set_defaults(func=actions.Pull)
 
     # Extract
 

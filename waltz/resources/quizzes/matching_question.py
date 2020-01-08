@@ -31,7 +31,7 @@ class MatchingQuestion(QuizQuestion):
     @classmethod
     def encode_json_raw(cls, registry: Registry, data, args):
         result = QuizQuestion.encode_question_common(registry, data, args)
-        result['matching_answer_incorrect_matches'] = "\n".join(data.get('incorrect_matches', []))
+        result['matching_answer_incorrect_matches'] = "\n".join(data.get('distractors', []))
         result['answers'] = [{'comments_html': m2h(answer.get('comment', '')),
                               'left': answer['left'],
                               'right': answer['right']}

@@ -122,7 +122,7 @@ html_to_markdown.tag_callback = handle_custom_tags
 
 
 def h2m(html, waltz_front_matter=None):
-    if not html:
+    if not html and not waltz_front_matter:
         return ""
     # Handle front matter
     if waltz_front_matter is None:

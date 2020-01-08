@@ -27,11 +27,12 @@ class TrueFalseQuestion(QuizQuestion):
     @classmethod
     def encode_json_raw(cls, registry: Registry, data, args):
         result = QuizQuestion.encode_question_common(registry, data, args)
+        comments = data.get('comments', {})
         result['answers'] = [
-            {'comments_html': m2h(data.get('if_true_chosen', "")),
+            {'comments_html': m2h(comments.get('if_true_chosen', "")),
              'weight': 100 if data['answer'] else 0,
              'text': 'True'},
-            {'comments_html': m2h(data.get('if_false_chosen', "")),
+            {'comments_html': m2h(comments.get('if_false_chosen', "")),
              'weight': 100 if not data['answer'] else 0,
              'text': 'False'}]
         return result

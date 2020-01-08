@@ -125,6 +125,12 @@ def Push(args):
     resource_category.upload(registry, args)
 
 
+def Pull(args):
+    registry = Registry.load(args.waltz_directory)
+    resource_category = registry.guess_resource_category(args)
+    resource_category.download(registry, args)
+    resource_category.decode(registry, args)
+
 def Decode(args):
     registry = Registry.load(args.waltz_directory)
     resource_category = registry.guess_resource_category(args)

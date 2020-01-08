@@ -94,6 +94,7 @@ class Quiz(CanvasResource):
         canvas = registry.get_service(args.service, "canvas")
         quiz_data = cls._make_canvas_upload(registry, local_quiz, args)
         created_quiz = canvas.api.post('quizzes/', data=quiz_data)
+        print("Created quiz", local_quiz['title'], "on canvas")
         # Create the groups
         group_name_to_id = {}
         for group in local_quiz['groups']:
@@ -104,6 +105,8 @@ class Quiz(CanvasResource):
             # acbart: Okay because names are strings and IDs are ints
             group_name_to_id[created_group['name']] = created_group['id']
             group_name_to_id[created_group['id']] = created_group['id']
+        if local_quiz['groups']:
+            print("Created quiz", local_quiz['title'], "groups on canvas")
         # Create the questions
         for question in local_quiz['questions']:
             if question['quiz_group_id'] is not None:
@@ -111,6 +114,7 @@ class Quiz(CanvasResource):
             question_data = QuizQuestion._make_canvas_upload(registry, question, args)
             created_question = canvas.api.post('quizzes/{quiz_id}/questions'.format(quiz_id=created_quiz['id']),
                                                data=question_data)
+        print("Created quiz", local_quiz['title'], "questions on canvas")
 
 
     @classmethod
@@ -120,6 +124,7 @@ class Quiz(CanvasResource):
         # Edit the quiz on canvas
         quiz_data = cls._make_canvas_upload(registry, new_quiz, args)
         canvas.api.put('quizzes/{quiz_id}'.format(quiz_id=quiz_id), data=quiz_data)
+        print("Created quiz", old_quiz['title'], "on canvas")
         # Make a map of the old groups' names/ids to the groups
         old_group_map = {}
         for group in old_quiz['groups'].values():
@@ -140,6 +145,8 @@ class Quiz(CanvasResource):
             canvas_group = canvas_group['quiz_groups'][0] # acbart: Weird response type
             used_groups[canvas_group['name']] = canvas_group
             used_groups[canvas_group['id']] = canvas_group
+        if new_quiz['groups']:
+            print("Updated quiz", old_quiz['title'], "groups on canvas")
         # Delete any groups that no longer have a reference
         for old_group in old_quiz['groups'].values():
             if old_group['id'] not in used_groups:
@@ -162,6 +169,7 @@ class Quiz(CanvasResource):
                 canvas_question = canvas.api.post('quizzes/{quiz_id}/questions'.format(quiz_id=quiz_id),
                                                   data=question_data)
             used_questions[canvas_question['id']] = canvas_question
+        print("Updated quiz", old_quiz['title'], "questions on canvas")
         # Delete any old questions
         for question in old_quiz['questions']:
             if question['id'] not in used_questions:
@@ -186,16 +194,6 @@ class Quiz(CanvasResource):
             if field in quiz:
                 payload["quiz[{}]".format(field)] = json.dumps(quiz[field])
         return payload
-
-    @classmethod
-    def download(cls, registry: Registry, args):
-        canvas = registry.get_service(args.service, "canvas")
-        quiz_json = cls.find(canvas, args.title)
-        if quiz_json is not None:
-            print("I found: ", args.title)
-            registry.store_resource(canvas.name, cls.name, args.title, "", quiz_json)
-            return quiz_json
-        cls.find_similar(registry, canvas, args)
 
     @classmethod
     def decode_json(cls, registry: Registry, data: str, args):

@@ -133,13 +133,14 @@ class Registry:
         terms = {column: term for column, term in parameters.items() if term is not None}
         resources = self.db.execute("SELECT service, category, title, disambiguate, data FROM resources "
                                     "WHERE {}".format(" AND ".join(terms.keys())), tuple(terms.values()))
+        result = resources.fetchone()
         if resources.rowcount > 1:
             raise WaltzAmbiguousResource(
                 "Ambiguous resource {}, found {} versions".format(" ".join(terms.values()), resources.rowcount))
-        elif not resources.rowcount:
+        elif not result or not resources.rowcount:
             raise WaltzResourceNotFound("Could not find resource {}.".format(" ".join(terms.values())))
         else:
-            return RawResource.from_database(resources.fetchone())
+            return RawResource.from_database(result)
 
     def configure_service(self, service):
         self.services[service.type].append(service)
