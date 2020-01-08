@@ -57,6 +57,24 @@ class Quiz(CanvasResource):
     id = "id"
 
     @classmethod
+    def find(cls, canvas, title):
+        # TODO: Change canvas -> registry, title -> args
+        resources = canvas.api.get(cls.endpoint, retrieve_all=True, data={"search_term": title})
+        for resource in resources:
+            if resource['title'] == title:
+                quiz = canvas.api.get(cls.endpoint + str(resource[cls.id]))
+                # Grab the questions' JSON
+                quiz['questions'] = canvas.api.get("quizzes/{quiz_id}/questions/".format(quiz_id=quiz['id']), retrieve_all=True)
+                # And the groups' JSON
+                group_ids = {question['quiz_group_id'] for question in quiz['questions']
+                             if question['quiz_group_id'] is not None}
+                quiz['groups'] = {group_id: canvas.api.get(
+                    'quizzes/{quiz_id}/groups/{group_id}'.format(quiz_id=quiz['id'], group_id=group_id))
+                          for group_id in group_ids}
+                return quiz
+        return None
+
+    @classmethod
     def upload(cls, registry: Registry, args):
         canvas = registry.get_service(args.service, "canvas")
         # Get the local version
@@ -102,22 +120,14 @@ class Quiz(CanvasResource):
         # Edit the quiz on canvas
         quiz_data = cls._make_canvas_upload(registry, new_quiz, args)
         canvas.api.put('quizzes/{quiz_id}'.format(quiz_id=quiz_id), data=quiz_data)
-        # Get all the questions old information
-        questions = canvas.api.get('quizzes/{quiz_id}/questions/'.format(quiz_id=quiz_id), retrieve_all=True)
-        if 'errors' in questions:
-            raise WaltzException("Errors in Canvas data: " + repr(questions))
-        # Determine all the existing groups
-        old_group_ids = {question['quiz_group_id'] for question in questions
-                     if question['quiz_group_id'] is not None}
-        old_groups = [canvas.api.get('quizzes/{qid}/groups/{gid}'.format(qid=quiz_id, gid=gid))
-                      for gid in old_group_ids]
+        # Make a map of the old groups' names/ids to the groups
         old_group_map = {}
-        for group in old_groups:
+        for group in old_quiz['groups'].values():
             old_group_map[group['name']] = group
             old_group_map[group['id']] = group
         # Update groups with the same name and create new ones
         used_groups = {}
-        for group in new_quiz['groups']:
+        for group in new_quiz['groups'].values():
             group_data = QuizGroup._make_canvas_upload(registry, group, args)
             if group['name'] in old_group_map:
                 canvas_group = old_group_map[group['name']]
@@ -131,13 +141,13 @@ class Quiz(CanvasResource):
             used_groups[canvas_group['name']] = canvas_group
             used_groups[canvas_group['id']] = canvas_group
         # Delete any groups that no longer have a reference
-        for old_group in old_groups:
+        for old_group in old_quiz['groups'].values():
             if old_group['id'] not in used_groups:
                 canvas.api.delete('quizzes/{quiz_id}/groups/{group_id}'.format(quiz_id=quiz_id,
                                                                                group_id=old_group['id']))
                 print("Deleted question group", old_group['name'], " (ID: {})".format(old_group['id']))
         # Push all the questions
-        name_map = {q['question_name']: q for q in questions}
+        name_map = {q['question_name']: q for q in old_quiz['questions']}
         used_questions = {}
         for new_question in new_quiz['questions']:
             if new_question.get('quiz_group_id') is not None:
@@ -153,7 +163,7 @@ class Quiz(CanvasResource):
                                                   data=question_data)
             used_questions[canvas_question['id']] = canvas_question
         # Delete any old questions
-        for question in questions:
+        for question in old_quiz['questions']:
             if question['id'] not in used_questions:
                 canvas.api.delete('quizzes/{quiz_id}/questions/{question_id}'.format(quiz_id=quiz_id,
                                                                                      question_id=question['id']))
@@ -183,19 +193,6 @@ class Quiz(CanvasResource):
         quiz_json = cls.find(canvas, args.title)
         if quiz_json is not None:
             print("I found: ", args.title)
-            decoded_json = json.loads(quiz_json)
-            quiz_id = decoded_json['id']
-            # Grab the questions' JSON
-            questions = canvas.api.get("quizzes/{quiz_id}/questions/".format(quiz_id=quiz_id), retrieve_all=True)
-            decoded_json['questions'] = questions
-            # And the groups' JSON
-            group_ids = {question['quiz_group_id'] for question in questions
-                         if question['quiz_group_id'] is not None}
-            groups = {group_id: canvas.api.get('quizzes/{quiz_id}/groups/{group_id}'.format(quiz_id=quiz_id, group_id=group_id))
-                      for group_id in group_ids}
-            decoded_json['groups'] = groups
-            # Store the results
-            quiz_json = json.dumps(decoded_json)
             registry.store_resource(canvas.name, cls.name, args.title, "", quiz_json)
             return quiz_json
         cls.find_similar(registry, canvas, args)
@@ -205,6 +202,7 @@ class Quiz(CanvasResource):
         raw_data = json.loads(data)
         result = CommentedMap()
         result['title'] = raw_data['title']
+        result['resource'] = 'quiz'
         result['url'] = raw_data['html_url']
         result['published'] = raw_data['published']
         result['settings'] = CommentedMap()
@@ -236,8 +234,11 @@ class Quiz(CanvasResource):
         result['questions'] = []
         available_groups = raw_data['groups']
         used_groups = {}
+        extra_files = []
         for question in raw_data['questions']:
-            quiz_question = QuizQuestion.decode_question(registry, question, raw_data, args)
+            quiz_question, destination_path, full_body = QuizQuestion.decode_question(registry, question, raw_data, args)
+            if destination_path is not None:
+                extra_files.append((destination_path, full_body))
             quiz_group_id = question.get('quiz_group_id')
             if quiz_group_id is not None:
                 quiz_group_id = str(quiz_group_id) # acbart: JSON only allows string keys
@@ -247,7 +248,7 @@ class Quiz(CanvasResource):
                 used_groups[quiz_group_id]['questions'].append(quiz_question)
             else:
                 result['questions'].append(quiz_question)
-        return h2m(raw_data['description'], result)
+        return h2m(raw_data['description'], result), extra_files
 
     @classmethod
     def encode_json(cls, registry: Registry, data, args):
@@ -257,14 +258,15 @@ class Quiz(CanvasResource):
         secrecy = settings.get('secrecy', {})
         body = hide_data_in_html(regular, m2h(body))
         questions = []
-        groups = []
+        groups = {}
         for question in waltz.get('questions', []):
             if isinstance(question, str):
                 # Look up quiz question name
                 questions.append(QuizQuestion.encode_question_by_title(registry, question, args))
             elif 'group' in question:
                 # This is a question group
-                groups.append(QuizGroup.encode_group(registry, question, args))
+                group = QuizGroup.encode_group(registry, question, args)
+                groups[group['name']] = group
                 questions.extend(QuizGroup.encode_questions(registry, question, args))
             else:
                 # This is an embedded question
@@ -302,35 +304,16 @@ class Quiz(CanvasResource):
         })
 
     @classmethod
-    def diff(cls, registry: Registry, args):
-        # Get local version
+    def diff_extra_files(cls, registry: Registry, data, args):
         local = registry.get_service(args.local_service, 'local')
-        source_path = None
-        try:
-            source_path = local.find_existing(registry, args.title)
-        except FileNotFoundError:
-            print("No local version of {}".format(args.title))
-        # Get remote version
-        canvas = registry.get_service(args.service, "canvas")
-        resource_json = cls.find(canvas, args.title)
-        if resource_json is None:
-            print("No canvas version of {}".format(args.title))
-        # Do the diff if we can
-        if not source_path or not resource_json:
-            return False
-        local_markdown = local.read(source_path)
-        remote_markdown = cls.decode_json(registry, resource_json, args)
-        if args.console:
-            differences = difflib.ndiff(local_markdown.splitlines(True), remote_markdown.splitlines(True))
-            for difference in differences:
-                print(difference, end="")
-        else:
-            html_differ = difflib.HtmlDiff(wrapcolumn=60)
-            html_diff = html_differ.make_file(local_markdown.splitlines(), remote_markdown.splitlines(),
-                                              fromdesc="Local: {}".format(source_path),
-                                              todesc="Canvas: {}".format(args.title))
-            local_diff_path = local.make_diff_filename(args.title)
-            local_diff_path = os.path.join(os.path.dirname(source_path), local_diff_path)
-            local.write(local_diff_path, html_diff)
-            if not args.prevent_open:
-                start_file(local_diff_path)
+        regular, waltz, body = extract_front_matter(data)
+        for question in waltz['questions']:
+            if isinstance(question, str):
+                destination_path = local.find_existing(registry, question,
+                                                       check_front_matter=True, top_directories=args.banks)
+                yield destination_path, local.read(destination_path)
+            elif 'group' in question:
+                for inner_question in question['questions']:
+                    if isinstance(inner_question, str):
+                        destination_path = local.find_existing(registry, inner_question)
+                        yield destination_path, local.read(destination_path)

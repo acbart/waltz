@@ -133,9 +133,11 @@ class Registry:
         terms = {column: term for column, term in parameters.items() if term is not None}
         resources = self.db.execute("SELECT service, category, title, disambiguate, data FROM resources "
                                     "WHERE {}".format(" AND ".join(terms.keys())), tuple(terms.values()))
-        if resources.rowcount > 1 or not resources.rowcount:
+        if resources.rowcount > 1:
             raise WaltzAmbiguousResource(
                 "Ambiguous resource {}, found {} versions".format(" ".join(terms.values()), resources.rowcount))
+        elif not resources.rowcount:
+            raise WaltzResourceNotFound("Could not find resource {}.".format(" ".join(terms.values())))
         else:
             return RawResource.from_database(resources.fetchone())
 
@@ -171,7 +173,7 @@ class Registry:
         if args.title is None:
             args.title = raw_resource.title
 
-    def guess_resource_category(self, args) -> 'Type[Resource]':
+    def guess_resource_category(self, args, arbitrary_service_order=None) -> 'Type[Resource]':
         """
 
         Args:
@@ -218,7 +220,7 @@ class Registry:
                 return category
             except WaltzResourceNotFound:
                 pass
-            # Else, it is just a resource title.
+            # Else, it is just a resource title. Do we know about it locally?
             search_terms['title'] = args.resource[0]
             raw_resource = self.find_resource(**search_terms)
             self.fill_args(args, raw_resource)

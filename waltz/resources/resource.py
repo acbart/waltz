@@ -41,5 +41,6 @@ class Resource:
     id: str
     category_names: List[str]
     styles: List[Style]
+    default_service: str
 
 

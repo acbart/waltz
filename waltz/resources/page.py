@@ -48,9 +48,9 @@ class Page(CanvasResource):
         raw_data = json.loads(data)
         return h2m(raw_data['body'], {
             'title': raw_data['title'],
-            'resource': 'Page',
+            'resource': 'page',
             'published': raw_data['published']
-        })
+        }), []
 
     @classmethod
     def encode_json(cls, registry: Registry, data: str, args):

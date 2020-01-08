@@ -3,6 +3,7 @@ from waltz import defaults
 from waltz.services.local import Local
 from waltz.registry import Registry
 from waltz.services.service import Service
+from waltz.tools import extract_front_matter
 
 
 def handle_registry(args, registry):
@@ -106,6 +107,24 @@ def Encode(args):
     resource_category.encode(registry, args)
 
 
+def Push(args):
+    registry = Registry.load(args.waltz_directory)
+    resource_category = None
+    if len(args.resource) == 1:
+        local = registry.get_service('local', args.local_service)
+        existing_file = local.find_existing(registry, args.resource[0], False, None)
+        _, waltz, _ = extract_front_matter(local.read(existing_file))
+        if 'resource' in waltz: # TODO: validate resource category
+            resource_category = registry.get_resource_category(waltz['resource'])
+            args.category = waltz['resource']
+            args.title = args.resource[0]
+            args.service = registry.get_service(resource_category.default_service).name
+    if resource_category is None:
+        resource_category = registry.guess_resource_category(args)
+    resource_category.encode(registry, args)
+    resource_category.upload(registry, args)
+
+
 def Decode(args):
     registry = Registry.load(args.waltz_directory)
     resource_category = registry.guess_resource_category(args)
@@ -134,3 +153,4 @@ def Search(args, registry=None):
 
 def Show(args, registry=None):
     registry = handle_registry(args, registry)
+

@@ -31,7 +31,7 @@ class QuizQuestion(CanvasResource):
         if args.combine:
             raw = question_type.decode_json_raw(registry, question, args)
             raw['text'] = h2m(raw['text'])
-            return raw
+            return raw, None, None
         local = registry.get_service(args.local_service, 'local')
         title = question['question_name']
         try:
@@ -51,8 +51,7 @@ class QuizQuestion(CanvasResource):
                 else:
                     destination_path = os.path.join(first_bank_path, destination_path)
         decoded_markdown = question_type.decode_json(registry, question, args)
-        local.write(destination_path, decoded_markdown)
-        return title
+        return title, destination_path, decoded_markdown
 
     @classmethod
     def decode_json(cls, registry: Registry, data, args):
@@ -68,6 +67,8 @@ class QuizQuestion(CanvasResource):
     def decode_question_common(self, registry: Registry, data, args):
         result = CommentedMap()
         result['title'] = data['question_name']
+        if not args.combine:
+            result['resource'] = 'quiz question'
         result['type'] = data['question_type']
         result['text'] = data['question_text']
         result['points'] = data['points_possible']

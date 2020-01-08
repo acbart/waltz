@@ -138,10 +138,24 @@ def parse_command_line(args):
                              help="Do not generate HTML file; just print to console.")
     parser_diff.add_argument("--prevent_open", action="store_true",
                              help="Prevent the generated HTML file from being automatically opened in your browser.")
+    parser_diff.add_argument("--banks", nargs="*", type=str,
+                             help="The question bank folders to check.")
+    parser_diff.add_argument("--combine", "-c", action='store_true', default=False,
+                             help="Whether to combine all subresources into a single file.")
+    parser_diff.add_argument("--hide_answers", action='store_true', default=False,
+                             help="Whether to hide answers to any questions.")
     add_id_and_url(parser_diff)
     parser_diff.set_defaults(func=actions.Diff)
 
     # Push
+    parser_push = subparsers.add_parser('push', help='Convert a locally editable resource into a raw one and upload it.')
+    parser_push.add_argument('resource', nargs='+', type=str, help="The resource to encode and upload. Could be a "
+                                                                     "filename, resource title, or some combination of those and the service and category.")
+    parser_push.add_argument("--local_service", type=str, help="The specific local service to use as an override.")
+    parser_push.add_argument("--banks", nargs="*", type=str,
+                               help="The question bank folders to check.")
+    add_id_and_url(parser_push)
+    parser_push.set_defaults(func=actions.Push)
 
     # Pull
 
