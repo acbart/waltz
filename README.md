@@ -17,13 +17,13 @@ We aim to support the following LMSes:
 
 You can install Waltz from PyPi (the package name is `lms-waltz` even though the module and command line script is `waltz`):
 
-```console
+```shell
 $> pip install lms-waltz
 ```
 
 You can also install our dev version from GitHub:
 
-```console
+```shell
 $> pip install git+https://github.com/acbart/waltz.git
 ```
 
@@ -32,7 +32,7 @@ $> pip install git+https://github.com/acbart/waltz.git
 Waltz can synchronize content between a local directory and a remote server.
 You'll need to initialize the local directory, whether it is empty or already has your learning materials.
 
-```console
+```shell
 $> waltz init
 ```
 
@@ -53,19 +53,19 @@ instance of a service. For example, to configure a new Canvas service, you'll ne
 
 Then, you can use the command below:
 
-```console
+```shell
 $> waltz configure canvas <name> --base <url> --course <id> --token <token>
 ```
 
 A more concrete example:
 
-```console
+```shell
 $> waltz configure canvas ud_canvas --base https://udel.instructure.com/ --course 4234343432343 --token 1081~zJIOJSDFBBSDFIJAIJ==>...
 ```
 
 If things went well, you can list the available services:
 
-```console
+```shell
 $> waltz list
 The following services are available:
          local:
@@ -85,7 +85,7 @@ In our case, anywhere that we use `ud_canvas` we could use `canvas` instead.
 
 You can list available resources for a service:
 
-```console
+```shell
 $> waltz list <service> <category>
 ```
 
@@ -93,7 +93,7 @@ So the following code checks the Pages for the Canvas course. Note that
 you could use the specific instance name instead of `canvas`, and either
 the singular or plural form of `pages`.
 
-```console
+```shell
 $> waltz list canvas pages
 Remote    Local    Title                      Path
 --------  -------  -------------------------  --------------------
@@ -108,7 +108,8 @@ Yes       Yes      Turtles                    pages\Turtles.md
 The `local` service allows you to omit the category (but you can filter by category if you want):
 
 ```console
-$> waltz list local
+foo@bar:~$ waltz list local
+
 Resource         Title                        Path
 ---------------  ---------------------------  ---------------------------------------------------------
 [unknown]        NetLogo-2                    NetLogo-2.md
@@ -136,7 +137,7 @@ the local service and a remote one. If the local version does not already exist,
 it will be created in the current directory with a filename based on the title of
 the resource from the LMS.
 
-```console
+```shell
 $> waltz pull <service> <category> <title>
 $> waltz push <service> <category> <title>
 ```
@@ -156,7 +157,7 @@ of information, particularly for pushing. If the given title matches the title o
 in the current directory (either based on the filename or the front-matter of the file),
 and that file has a resource specified, then the appropriate service can automatically be inferred.
 
-```console
+```shell
 $> waltz push "Turtles"
 ```
 
@@ -174,7 +175,7 @@ helpful to find out how the local version of a resource is different
 from the remote. The `diff` command has similar syntax to the other
 actions, but does not modify the filesystem when it is run.
 
-```console
+```shell
 $> waltz diff canvas page "Turtles"
 ```
 
@@ -313,7 +314,7 @@ sure that the content is appropriately transferred.
 
 A Canvas Quiz can be pulled as a combined single file.
 
-```console
+```shell
 $> waltz pull canvas quiz "My Quiz" --combine 
 ```
 
@@ -335,7 +336,7 @@ intelligently as possible so that they make sense locally and remotely.
 
 # Full Command List
 
-```console
+```shell
 $> waltz reset
 $> waltz init
 $> waltz configure <service> <name>
