@@ -2,6 +2,7 @@ import difflib
 import json
 import os
 
+from natsort import natsorted
 from tabulate import tabulate
 
 from waltz.exceptions import WaltzException, WaltzAmbiguousResource
@@ -47,11 +48,20 @@ class CanvasResource(Resource):
 """
 
     @classmethod
+    def sort_resource(cls, resource):
+        for attribute in ['title', 'name', 'id']:
+            try:
+                return resource[attribute]
+            except KeyError:
+                pass
+        return None
+
+    @classmethod
     def list(cls, registry, canvas, args):
         local = registry.get_service(args.local_service, 'local')
         resources = canvas.api.get(cls.endpoint, retrieve_all=True, data={"search_term": args.term})
         rows = []
-        for resource in resources:
+        for resource in natsorted(resources, key=cls.sort_resource):
             try:
                 path = local.find_existing(registry, resource[cls.title_attribute])
                 rows.append(("Yes", "Yes", resource[cls.title_attribute], os.path.relpath(path)))

@@ -3,6 +3,7 @@ settings/
 courses/
 .idea/
 tests/*.db
+tests/.waltz.db
 tests/secret_testing_data.json
 
 # Byte-compiled / optimized / DLL files

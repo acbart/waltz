@@ -1,6 +1,7 @@
 import os
 from datetime import datetime
 
+from natsort import natsorted
 from tabulate import tabulate
 
 from waltz.exceptions import WaltzException, WaltzAmbiguousResource
@@ -121,7 +122,7 @@ class Local(Service):
             category_names = None
         rows = []
         for root, dirs, files in os.walk(self.path):
-            for name in files:
+            for name in natsorted(files):
                 if name.endswith(".md"):
                     path = os.path.join(root, name)
                     decoded_markdown = self.read(path)
@@ -134,7 +135,7 @@ class Local(Service):
                     resource = "[{}]".format(waltz.get('resource', 'unknown'))
                     if category_names is None or waltz.get('resource') in category_names:
                         rows.append((resource, waltz.get("title", ""), os.path.relpath(path)))
-        print(tabulate(rows, ("Category", "Title", "Path")))
+        print(tabulate(rows, ("Resource", "Title", "Path")))
 
     @classmethod
     def add_parser_list(cls, parser):

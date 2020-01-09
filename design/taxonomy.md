@@ -1,3 +1,6 @@
+*These notes are really for my own benefit. You should probably ignore
+them.*
+
 Curriculum is composed of Modules
 
 Module is composed of Resources

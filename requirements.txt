@@ -9,3 +9,4 @@ python-dateutil
 html2text
 canvasapi
 tabulate
+natsort
