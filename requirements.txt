@@ -8,3 +8,4 @@ requests_cache
 python-dateutil
 html2text
 canvasapi
+tabulate

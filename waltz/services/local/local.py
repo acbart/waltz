@@ -1,7 +1,9 @@
 import os
 from datetime import datetime
 
-from waltz.exceptions import WaltzException
+from tabulate import tabulate
+
+from waltz.exceptions import WaltzException, WaltzAmbiguousResource
 from waltz.resources.raw import RawResource
 from waltz.services.service import Service
 from waltz.tools import yaml, extract_front_matter
@@ -112,15 +114,32 @@ class Local(Service):
         local_parser.add_argument('path', type=str, help="The path to the directory")
         return local_parser
 
-    def list(self, args):
+    def list(self, registry, args):
+        if args.category:
+            category_names = registry.get_resource_category(args.category).category_names
+        else:
+            category_names = None
+        rows = []
         for root, dirs, files in os.walk(self.path):
             for name in files:
                 if name.endswith(".md"):
-                    print(os.path.join(root, name))
+                    path = os.path.join(root, name)
+                    decoded_markdown = self.read(path)
+                    try:
+                        regular, waltz, body = extract_front_matter(decoded_markdown)
+                    except:
+                        if category_names is None:
+                            rows.append(("[invalid]", "", os.path.relpath(path)))
+                        continue
+                    resource = "[{}]".format(waltz.get('resource', 'unknown'))
+                    if category_names is None or waltz.get('resource') in category_names:
+                        rows.append((resource, waltz.get("title", ""), os.path.relpath(path)))
+        print(tabulate(rows, ("Category", "Title", "Path")))
 
     @classmethod
     def add_parser_list(cls, parser):
         local_parser = parser.add_parser('local', help="List all available recognized files.")
+        local_parser.add_argument('category', type=str, nargs="?", help="An optional category to filter on.")
         local_parser.add_argument('--term', type=str, help="An optional search term")
         return local_parser
 
@@ -129,11 +148,11 @@ class Local(Service):
 
     @classmethod
     def make_markdown_filename(cls, filename):
-        return make_safe_filename(filename)+".md"
+        return make_safe_filename(filename) + ".md"
 
     @classmethod
     def make_diff_filename(cls, filename):
-        return make_safe_filename(filename)+".diff.html"
+        return make_safe_filename(filename) + ".diff.html"
 
     def find_existing(self, registry, title: str, check_front_matter=False, top_directories=None):
         # Get the path to the file
@@ -153,9 +172,9 @@ class Local(Service):
                             if waltz.get('title') == title:
                                 potential_files.append(potential_file)
             if len(potential_files) > 1:
-                raise WaltzException("Ambiguous resource named {}:\n\t{}".format(
+                raise WaltzAmbiguousResource("Ambiguous resource named {}:\n\t{}".format(
                     safe_filename, "\n\t".join(potential for potential in potential_files)
-                ))
+                ), potential_files)
             elif not potential_files:
                 raise FileNotFoundError("No resource named {} found.".format(safe_filename))
             safe_filename, = potential_files
@@ -169,4 +188,3 @@ class Local(Service):
     def read(self, source_path):
         with open(source_path, 'r') as input_file:
             return input_file.read()
-

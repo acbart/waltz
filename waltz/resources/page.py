@@ -11,6 +11,9 @@ from waltz.resources.resource import Resource
 from waltz.tools.html_markdown_utilities import hide_data_in_html, m2h
 from waltz.tools.utilities import get_files_last_update, from_canvas_date, to_friendly_date_from_datetime, start_file
 
+# TODO: Template support
+# TODO: Sophisticated links
+# TODO: File system handling
 
 class Page(CanvasResource):
     name = "page"

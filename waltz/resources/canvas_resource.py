@@ -2,7 +2,9 @@ import difflib
 import json
 import os
 
-from waltz.exceptions import WaltzException
+from tabulate import tabulate
+
+from waltz.exceptions import WaltzException, WaltzAmbiguousResource
 from waltz.registry import Registry
 from waltz.resources.resource import Resource
 from waltz.tools.utilities import start_file
@@ -45,10 +47,21 @@ class CanvasResource(Resource):
 """
 
     @classmethod
-    def list(cls, canvas, args):
+    def list(cls, registry, canvas, args):
+        local = registry.get_service(args.local_service, 'local')
         resources = canvas.api.get(cls.endpoint, retrieve_all=True, data={"search_term": args.term})
+        rows = []
         for resource in resources:
-            print(resource['title'])
+            try:
+                path = local.find_existing(registry, resource[cls.title_attribute])
+                rows.append(("Yes", "Yes", resource[cls.title_attribute], os.path.relpath(path)))
+            except WaltzAmbiguousResource as war:
+                paths = "\n".join(os.path.relpath(path) for path in war.args[0])
+                rows.append(("Yes", "Multiple", resource[cls.title_attribute], paths))
+            except FileNotFoundError:
+                rows.append(("Yes", "No", resource[cls.title_attribute], ""))
+        print(tabulate(rows, ('Remote', 'Local', 'Title', 'Path')))
+
 
     @classmethod
     def find(cls, canvas, title):

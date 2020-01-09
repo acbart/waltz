@@ -53,7 +53,7 @@ def List(args):
                 print("\t", service_type + ":", "(none configured)")
     else:
         service = registry.get_service(args.service)
-        service.list(args)
+        service.list(registry, args)
     return registry
 
 
