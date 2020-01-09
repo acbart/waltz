@@ -17,14 +17,14 @@ We aim to support the following LMSes:
 
 You can install Waltz from PyPi (the package name is `lms-waltz` even though the module and command line script is `waltz`):
 
-```shell
-$> pip install lms-waltz
+```console
+foo@bar:~$ pip install lms-waltz
 ```
 
 You can also install our dev version from GitHub:
 
-```shell
-$> pip install git+https://github.com/acbart/waltz.git
+```console
+foo@bar:~$ pip install git+https://github.com/acbart/waltz.git
 ```
 
 ## Setup Waltz
@@ -32,8 +32,8 @@ $> pip install git+https://github.com/acbart/waltz.git
 Waltz can synchronize content between a local directory and a remote server.
 You'll need to initialize the local directory, whether it is empty or already has your learning materials.
 
-```shell
-$> waltz init
+```console
+foo@bar:~$ waltz init
 ```
 
 This will create two new files which should both be included in your `.gitignore`:
@@ -53,20 +53,20 @@ instance of a service. For example, to configure a new Canvas service, you'll ne
 
 Then, you can use the command below:
 
-```shell
-$> waltz configure canvas <name> --base <url> --course <id> --token <token>
+```console
+foo@bar:~$ waltz configure canvas <name> --base <url> --course <id> --token <token>
 ```
 
 A more concrete example:
 
-```shell
-$> waltz configure canvas ud_canvas --base https://udel.instructure.com/ --course 4234343432343 --token 1081~zJIOJSDFBBSDFIJAIJ==>...
+```console
+foo@bar:~$ waltz configure canvas ud_canvas --base https://udel.instructure.com/ --course 4234343432343 --token 1081~zJIOJSDFBBSDFIJAIJ==>...
 ```
 
 If things went well, you can list the available services:
 
-```shell
-$> waltz list
+```console
+foo@bar:~$ waltz list
 The following services are available:
          local:
                  ./
@@ -85,16 +85,16 @@ In our case, anywhere that we use `ud_canvas` we could use `canvas` instead.
 
 You can list available resources for a service:
 
-```shell
-$> waltz list <service> <category>
+```console
+foo@bar:~$ waltz list <service> <category>
 ```
 
 So the following code checks the Pages for the Canvas course. Note that
 you could use the specific instance name instead of `canvas`, and either
 the singular or plural form of `pages`.
 
-```shell
-$> waltz list canvas pages
+```console
+foo@bar:~$ waltz list canvas pages
 Remote    Local    Title                      Path
 --------  -------  -------------------------  --------------------
 Yes       Yes      Abstraction                pages\Abstraction.md
@@ -137,19 +137,19 @@ the local service and a remote one. If the local version does not already exist,
 it will be created in the current directory with a filename based on the title of
 the resource from the LMS.
 
-```shell
-$> waltz pull <service> <category> <title>
-$> waltz push <service> <category> <title>
+```console
+foo@bar:~$ waltz pull <service> <category> <title>
+foo@bar:~$ waltz push <service> <category> <title>
 ```
 
 Generally, you want to fully specify the remote service, resource category,
 and title of the resource you want to use. This avoids ambiguity.
 
 ```
-$> waltz pull canvas assignment "Project 3"
-$> ls
+foo@bar:~$ waltz pull canvas assignment "Project 3"
+foo@bar:~$ ls
 Project 3.md
-$> waltz push canvas assignment "Project 3"
+foo@bar:~$ waltz push canvas assignment "Project 3"
 ```
 
 However, the commands attempt to work intelligently to find the appropriate file given minimal amounts
@@ -157,8 +157,8 @@ of information, particularly for pushing. If the given title matches the title o
 in the current directory (either based on the filename or the front-matter of the file),
 and that file has a resource specified, then the appropriate service can automatically be inferred.
 
-```shell
-$> waltz push "Turtles"
+```console
+foo@bar:~$ waltz push "Turtles"
 ```
 
 If the desired files are not in the present folder, it will search subfolders.
@@ -175,8 +175,8 @@ helpful to find out how the local version of a resource is different
 from the remote. The `diff` command has similar syntax to the other
 actions, but does not modify the filesystem when it is run.
 
-```shell
-$> waltz diff canvas page "Turtles"
+```console
+foo@bar:~$ waltz diff canvas page "Turtles"
 ```
 
 ![Screenshot showing web-based output of the Waltz Diff command, with the local version of a file on the left and the remote version on the right. Changes are highlighted using red, green, and yellow highlighting.](docs/example-diff-1.png)
@@ -314,8 +314,8 @@ sure that the content is appropriately transferred.
 
 A Canvas Quiz can be pulled as a combined single file.
 
-```shell
-$> waltz pull canvas quiz "My Quiz" --combine 
+```console
+foo@bar:~$ waltz pull canvas quiz "My Quiz" --combine 
 ```
 
 You can specify a question bank to reuse questions between quizzes.
@@ -336,16 +336,16 @@ intelligently as possible so that they make sense locally and remotely.
 
 # Full Command List
 
-```shell
-$> waltz reset
-$> waltz init
-$> waltz configure <service> <name>
-$> waltz list <service> <category>
-$> waltz pull <service> <category> <title>
-$> waltz push <service> <category> <title>
-$> waltz download <service> <category> <title>
-$> waltz upload <service> <category> <title>
-$> waltz encode <service> <category> <title>
-$> waltz decode <service> <category> <title>
-$> waltz diff <service> <category> <title>
+```console
+foo@bar:~$ waltz reset
+foo@bar:~$ waltz init
+foo@bar:~$ waltz configure <service> <name>
+foo@bar:~$ waltz list <service> <category>
+foo@bar:~$ waltz pull <service> <category> <title>
+foo@bar:~$ waltz push <service> <category> <title>
+foo@bar:~$ waltz download <service> <category> <title>
+foo@bar:~$ waltz upload <service> <category> <title>
+foo@bar:~$ waltz encode <service> <category> <title>
+foo@bar:~$ waltz decode <service> <category> <title>
+foo@bar:~$ waltz diff <service> <category> <title>
 ```
