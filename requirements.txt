@@ -1,3 +1,5 @@
 tqdm
 requests
-ruamel
+requests-cache
+ruamel.yaml
+html2text
