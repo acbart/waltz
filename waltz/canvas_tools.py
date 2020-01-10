@@ -23,6 +23,7 @@ def load_settings(path='settings.yaml', create_if_not_exists=True):
     # Create settings file if it doesn't exist
     if not os.path.exists(path):
         if create_if_not_exists:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
             with open(path, 'w') as settings_file:
                 yaml.dump(settings, settings_file)
                 print("A settings.yaml file was created. Please add your token and courses.")
