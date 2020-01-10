@@ -125,8 +125,7 @@ def main(args):
     
     if args.destination is None:
         destination = 'courses/{}/'.format(course)
-        if not os.path.exists('courses/'):
-            os.makedirs(path, exist_ok=True)
+        os.makedirs(destination, exist_ok=True)
     else:
         destination = args.destination
     
