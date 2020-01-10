@@ -19,4 +19,4 @@ style:
 
 publish:
 	python setup.py sdist bdist_wheel
-	twine upload ./dist/* --skip-existing
+	python -m twine upload ./dist/* --skip-existing
