@@ -1,27 +1,10 @@
+from waltz.resources.problem import Problem
+from waltz.resources.blockpy_course import BlockPyCourse
 from waltz.defaults import register_service_type
-from waltz.services.service import Service
+from waltz.services.blockpy.blockpy import BlockPy
 
 
-class BlockPy(Service):
-    type: str = "blockpy"
-    RESOURCES = {}
-
-    @classmethod
-    def configure(cls, args):
-        pass
-
-    @classmethod
-    def add_parser_configure(cls, parser):
-        blockpy_parser = parser.add_parser('blockpy', help="Connect to a BlockPy database")
-        blockpy_parser.add_argument('new', type=str, help="The new service that you will be creating.")
-        blockpy_parser.add_argument('--base', type=str, help="The base server URL (e.g., https://think.cs.vt.edu/blockpy/)")
-        blockpy_parser.add_argument('--username', type=str, help="The username to access data with")
-        blockpy_parser.add_argument('--password', type=str, help="The password to access data with")
-        return blockpy_parser
-
-    @classmethod
-    def add_parser_list(cls, parser):
-        return parser
-
+BlockPy.register_resource(Problem)
+BlockPy.register_resource(BlockPyCourse)
 
 register_service_type(BlockPy)

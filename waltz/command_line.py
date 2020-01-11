@@ -40,8 +40,8 @@ from waltz import defaults
 
 def parse_command_line(args):
     parser = argparse.ArgumentParser(prog='waltz', description='Sync resources between services for a course')
-    parser.add_argument('--waltz_directory', type=str, help="Path to the main waltz directory with the Waltz registry and DB file.",
-                        default="./")
+    parser.add_argument('--waltz_directory', type=str, default="./",
+                        help="Path to the main waltz directory with the Waltz registry and DB file.")
     subparsers = parser.add_subparsers(help='Available commands')
 
     # Init Waltz
@@ -85,15 +85,13 @@ def parse_command_line(args):
     def add_id_and_url(subparser):
         subparser.add_argument("--id", help="A resource-specific ID to disambiguate this resource definitively.")
         subparser.add_argument("--url", help="A resource-specific URL to disambiguate this resource definitively.")
+        subparser.add_argument("--all", action='store_true', help="Get all the resources of this type.")
 
     # Download
     parser_download = subparsers.add_parser('download', help='Download the raw version of a resource.')
     parser_download.add_argument('resource', nargs='+', type=str, help="The resource to download. Could be a "
                                  "resource title, filename, or some combination of those and the service and category.")
     add_id_and_url(parser_download)
-    #parser_download_services = parser_download.add_subparsers(dest='service', help="The service to download from.")
-    #for name, service_type in defaults.get_service_types().items():
-    #    service_type.add_parser_download(parser_download_services)
     parser_download.set_defaults(func=actions.Download)
 
     # Upload

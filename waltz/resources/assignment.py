@@ -40,6 +40,8 @@ class Assignment(CanvasResource):
         if 'allowed_extensions' in raw_data:
             result['settings']['submission']['allowed_extensions'] = raw_data['allowed_extensions']
         result['settings']['submission']['submission_types'] = raw_data['submission_types']
+        if 'external_tool' in raw_data['submission_types']:
+            result['settings']['submission']['external_tool'] = raw_data['external_tool_tag_attributes']['url']
         # Timing
         result['settings']['timing'] = CommentedMap()
         result['settings']['timing']['due_at'] = to_friendly_date(raw_data['due_at'])

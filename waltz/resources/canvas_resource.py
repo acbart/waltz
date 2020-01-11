@@ -4,6 +4,7 @@ import os
 
 from natsort import natsorted
 from tabulate import tabulate
+from tqdm import tqdm
 
 from waltz.exceptions import WaltzException, WaltzAmbiguousResource
 from waltz.registry import Registry
@@ -83,7 +84,30 @@ class CanvasResource(Resource):
         return None
 
     @classmethod
+    def download_all(cls, registry: Registry, args):
+        canvas = registry.get_service(args.service, "canvas")
+        local = registry.get_service('local')
+        resources = canvas.api.get(cls.endpoint, retrieve_all=True)
+        rows = []
+        for resource in tqdm(natsorted(resources, key=cls.sort_resource)):
+            try:
+                path = local.find_existing(registry, resource[cls.title_attribute])
+                rows.append(("Yes", "Yes", resource[cls.title_attribute], os.path.relpath(path)))
+            except WaltzAmbiguousResource as war:
+                paths = "\n".join(os.path.relpath(path) for path in war.args[0])
+                rows.append(("Yes", "Multiple", resource[cls.title_attribute], paths))
+            except FileNotFoundError:
+                rows.append(("Yes", "No", resource[cls.title_attribute], ""))
+            full_resource = canvas.api.get(cls.endpoint + str(resource[cls.id]))
+            registry.store_resource(canvas.name, cls.name, resource[cls.title_attribute], "", json.dumps(full_resource))
+        print(tabulate(rows, ('Remote', 'Local', 'Title', 'Path')))
+        print("Downloaded", len(resources), cls.name_plural)
+
+    @classmethod
     def download(cls, registry: Registry, args):
+        if args.all:
+            cls.download_all(registry, args)
+            return
         canvas = registry.get_service(args.service, "canvas")
         resource_json = cls.find(canvas, args.title)
         if resource_json is not None:
@@ -113,18 +137,22 @@ class CanvasResource(Resource):
     @classmethod
     def decode(cls, registry: Registry, args):
         local = registry.get_service(args.local_service, 'local')
-        raw_resource = registry.find_resource(title=args.title, service=args.service,
-                                              category=cls.name, disambiguate=args.url)
-        try:
-            destination_path = local.find_existing(registry, raw_resource.title)
-        except FileNotFoundError:
-            destination_path = local.make_markdown_filename(raw_resource.title)
-            if args.destination:
-                destination_path = os.path.join(args.destination, destination_path)
-        decoded_markdown, extra_files = cls.decode_json(registry, raw_resource.data, args)
-        local.write(destination_path, decoded_markdown)
-        for path, data in extra_files:
-            local.write(path, data)
+        # TODO: use disambiguate
+        if args.all:
+            raw_resources = registry.find_all_resources(service=args.service, category=cls.name)
+        else:
+            raw_resources = [registry.find_resource(title=args.title, service=args.service, category=cls.name)]
+        for raw_resource in raw_resources:
+            try:
+                destination_path = local.find_existing(registry, raw_resource.title)
+            except FileNotFoundError:
+                destination_path = local.make_markdown_filename(raw_resource.title)
+                if args.destination:
+                    destination_path = os.path.join(args.destination, destination_path)
+            decoded_markdown, extra_files = cls.decode_json(registry, raw_resource.data, args)
+            local.write(destination_path, decoded_markdown)
+            for path, data in extra_files:
+                local.write(path, data)
 
     @classmethod
     def encode(cls, registry: Registry, args):

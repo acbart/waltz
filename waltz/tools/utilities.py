@@ -70,6 +70,17 @@ def to_friendly_date_from_datetime(d: datetime) -> str:
     return d.replace(tzinfo=from_zone).astimezone(to_zone).strftime(FRIENDLY_DATE_FORMAT)
 
 
+def datetime_to_blockpy_string(a_datetime):
+    return a_datetime.isoformat() + 'Z'
+
+
+def blockpy_string_to_datetime(a_string):
+    try:
+        return datetime.strptime(a_string, '%Y-%m-%dT%H:%M:%S.%fZ')
+    except ValueError:
+        return datetime.strptime(a_string, '%Y-%m-%dT%H:%M:%SZ')
+
+
 def get_files_last_update(source_path) -> datetime:
     return datetime.fromtimestamp(os.path.getmtime(source_path))
 

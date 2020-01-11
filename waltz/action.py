@@ -131,6 +131,7 @@ def Pull(args):
     resource_category.download(registry, args)
     resource_category.decode(registry, args)
 
+
 def Decode(args):
     registry = Registry.load(args.waltz_directory)
     resource_category = registry.guess_resource_category(args)

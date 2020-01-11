@@ -287,6 +287,11 @@ you are relying on this feature! Also note that we do not currently
 encode any extra `waltz` front-matter, so you should be sure not to rely
 on extra data stored in that attribute.
 
+You can use the `--all` switch to bulk download resources.
+
+You can use the `--destination <path>` parameter to set the location
+where files will be decoded to.
+
 ### Canvas Pages
 
 A Canvas Page is decoded into a Markdown file with very minimal

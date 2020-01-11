@@ -46,13 +46,5 @@ class Canvas(Service):
     def list(self, registry, args):
         self.RESOURCES[args.category].list(registry, self, args)
 
-    @classmethod
-    def add_parser_download(cls, parser):
-        canvas_parser = parser.add_parser('canvas', help="Download raw resources from Canvas into Waltz Database")
-        parser_download_services = canvas_parser.add_subparsers(dest='category',
-                                                                help="The category of resource to search through.")
-        for name, resource_type in Canvas.RESOURCES.items():
-            resource_type.add_parser_download(parser_download_services)
-        return canvas_parser
 
 

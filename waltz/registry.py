@@ -98,6 +98,7 @@ class Registry:
         else:
             # TODO: default was specified? What does that mean.
             logging.warning("No registry file was detected; since default was specified, I'll create it instead.")
+            # TODO: directory is None, indicating we didn't find the waltz file. Build it here?
             Registry.init(directory)
 
     def save_to_file(self):
@@ -126,6 +127,11 @@ class Registry:
         self.db.execute("REPLACE INTO resources VALUES (?, ?, ?, ?, ?)",
                         (service, category, title, disambiguate, resource_data))
         self.db.commit()
+
+    def find_all_resources(self, service=None, category=None):
+        resources = self.db.execute("SELECT service, category, title, disambiguate, data FROM resources "
+                                    "WHERE service = ? AND category = ?", (service, category))
+        return [RawResource.from_database(result) for result in resources.fetchall()]
 
     def find_resource(self, service=None, category=None, title=None, disambiguate=None):
         parameters = {"service = ?": service, "category = ?": category,
