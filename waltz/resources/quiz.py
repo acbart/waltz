@@ -94,10 +94,13 @@ class Quiz(CanvasResource):
         canvas = registry.get_service(args.service, "canvas")
         quiz_data = cls._make_canvas_upload(registry, local_quiz, args)
         created_quiz = canvas.api.post('quizzes/', data=quiz_data)
+        if 'errors' in created_quiz:
+            pprint(created_quiz['errors'])
+            raise WaltzException("Error loading data, see above.")
         print("Created quiz", local_quiz['title'], "on canvas")
         # Create the groups
         group_name_to_id = {}
-        for group in local_quiz['groups']:
+        for group in local_quiz['groups'].values():
             group_data = QuizGroup._make_canvas_upload(registry, group, args)
             created_group = canvas.api.post('quizzes/{quiz_id}/groups'.format(quiz_id=created_quiz['id']),
                                             data=group_data)
@@ -109,7 +112,7 @@ class Quiz(CanvasResource):
             print("Created quiz", local_quiz['title'], "groups on canvas")
         # Create the questions
         for question in local_quiz['questions']:
-            if question['quiz_group_id'] is not None:
+            if 'quiz_group_id' in question and question['quiz_group_id'] is not None:
                 question['quiz_group_id'] = group_name_to_id[question['quiz_group_id']]
             question_data = QuizQuestion._make_canvas_upload(registry, question, args)
             created_question = canvas.api.post('quizzes/{quiz_id}/questions'.format(quiz_id=created_quiz['id']),
@@ -189,10 +192,10 @@ class Quiz(CanvasResource):
     def _make_canvas_upload(cls, registry: Registry, quiz, args):
         payload = {'quiz[notify_of_update]': 'false'}
         for field in cls.REQUIRED_UPLOAD_FIELDS:
-            payload["quiz[{}]".format(field)] = json.dumps(quiz[field])
+            payload["quiz[{}]".format(field)] = quiz[field]
         for field in cls.OPTIONAL_UPLOAD_FIELDS:
-            if field in quiz:
-                payload["quiz[{}]".format(field)] = json.dumps(quiz[field])
+            if field in quiz and quiz[field] not in (None, ""):
+                payload["quiz[{}]".format(field)] = quiz[field]
         return payload
 
     @classmethod

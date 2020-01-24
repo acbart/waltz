@@ -121,6 +121,26 @@ def handle_custom_tags(self, tag, attrs, start):
 html_to_markdown.tag_callback = handle_custom_tags
 
 
+def add_to_front_matter(markdown, yaml):
+    if markdown.startswith("---"):
+        data = frontmatter.loads(markdown, handler=yaml)
+        regular_metadata = data.metadata
+        if 'waltz' not in regular_metadata:
+            regular_metadata['waltz'] = {}
+        regular_metadata['waltz'].update(yaml)
+        yaml = regular_metadata
+        markdown = data.content
+    else:
+        yaml = {'waltz': yaml}
+    return inject_yaml(markdown, yaml)
+
+
+def inject_yaml(markdown, yaml_data):
+    stream = StringIO()
+    yaml.dump(yaml_data, stream)
+    return "---\n{}---\n{}".format(stream.getvalue(), markdown)
+
+
 def h2m(html, waltz_front_matter=None):
     if not html and not waltz_front_matter:
         return ""
@@ -137,8 +157,6 @@ def h2m(html, waltz_front_matter=None):
         existing_front_matter = {}
     if waltz_front_matter:
         existing_front_matter.update({'waltz': waltz_front_matter})
-    stream = StringIO()
-    yaml.dump(existing_front_matter, stream)
     markdowned = html_to_markdown.handle(html)
     in_fenced_code = False
     skip = 0
@@ -157,7 +175,7 @@ def h2m(html, waltz_front_matter=None):
             modified.append(line)
     markdowned = ("\n".join(modified)).strip()
     if existing_front_matter:
-        markdowned = "---\n{}---\n{}".format(stream.getvalue(), markdowned)
+        markdowned = inject_yaml(markdowned, existing_front_matter)
     return markdowned
   
 # Markdown to HTML
