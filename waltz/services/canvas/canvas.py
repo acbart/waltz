@@ -36,8 +36,8 @@ class Canvas(Service):
         return canvas_parser
 
     @classmethod
-    def add_parser_list(cls, parser):
-        canvas_parser = parser.add_parser('canvas', help="List possible resources on Canvas")
+    def add_parser_list(cls, parser, custom_name='canvas'):
+        canvas_parser = parser.add_parser(custom_name, help="List possible resources on Canvas")
         canvas_parser.add_argument('category', type=str, help="The type of resource to list.")
         canvas_parser.add_argument('--term', type=str, help="A search term to optionally filter on.", default="")
         canvas_parser.add_argument('--local_service', type=str, help="Use a different local service than the default.")

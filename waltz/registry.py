@@ -84,7 +84,7 @@ class Registry:
             directory = parent_directory
 
     @classmethod
-    def load(cls, directory):
+    def load(cls, directory, create_if_not_exists=True):
         directory = cls.search_up_for_waltz_registry(directory)
         if directory is not None:
             with open(cls.get_waltz_registry_path(directory)) as registry_file:
@@ -95,11 +95,11 @@ class Registry:
             else:
                 raise WaltzException("Unknown registry file version: {}\nMy version is: {}".format(
                     version, defaults.WALTZ_VERSION))
-        else:
+        elif create_if_not_exists:
             # TODO: default was specified? What does that mean.
             logging.warning("No registry file was detected; since default was specified, I'll create it instead.")
             # TODO: directory is None, indicating we didn't find the waltz file. Build it here?
-            Registry.init(directory)
+            return Registry.init(directory)
 
     def save_to_file(self):
         registry_path = self.get_waltz_registry_path(self.directory)

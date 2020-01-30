@@ -138,8 +138,8 @@ class Local(Service):
         print(tabulate(rows, ("Resource", "Title", "Path")))
 
     @classmethod
-    def add_parser_list(cls, parser):
-        local_parser = parser.add_parser('local', help="List all available recognized files.")
+    def add_parser_list(cls, parser, custom_name='local'):
+        local_parser = parser.add_parser(custom_name, help="List all available recognized files.")
         local_parser.add_argument('category', type=str, nargs="?", help="An optional category to filter on.")
         local_parser.add_argument('--term', type=str, help="An optional search term")
         return local_parser

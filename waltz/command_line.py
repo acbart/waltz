@@ -36,6 +36,7 @@
 import argparse
 import waltz.action as actions
 from waltz import defaults
+from waltz.registry import Registry
 
 
 def parse_command_line(args):
@@ -71,6 +72,11 @@ def parse_command_line(args):
     parser_list_services = parser_list.add_subparsers(dest='service', help="The service to search within.")
     for name, service_type in defaults.get_service_types().items():
         service_type.add_parser_list(parser_list_services)
+    registry = Registry.load('./', False)
+    if registry is not None:
+        for name, services in registry.services.items():
+            for service_type in services:
+                service_type.add_parser_list(parser_list_services, service_type.name)
     parser_list.set_defaults(func=actions.List)
 
     # Show [Course|Service]

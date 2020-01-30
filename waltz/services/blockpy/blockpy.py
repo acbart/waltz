@@ -44,8 +44,8 @@ class BlockPy(Service):
         return blockpy_parser
 
     @classmethod
-    def add_parser_list(cls, parser):
-        blockpy_parser = parser.add_parser('blockpy', help="List possible resources on BlockPy")
+    def add_parser_list(cls, parser, custom_name='blockpy'):
+        blockpy_parser = parser.add_parser(custom_name, help="List possible resources on BlockPy")
         blockpy_parser.add_argument('category', type=str, help="The type of resource to list. One of {courses, problems, groups}.")
         blockpy_parser.add_argument('--term', type=str, help="A search term to optionally filter on.", default="")
         blockpy_parser.add_argument('--local_service', type=str, help="Use a different local service than the default.")
