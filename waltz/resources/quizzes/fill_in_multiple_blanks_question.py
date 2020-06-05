@@ -19,7 +19,7 @@ class FillInMultipleBlanksQuestion(QuizQuestion):
                     result['answers'][blank_id] = []
                 a = CommentedMap()
                 a['text'] = answer['text']
-                if answer['comments_html']:
+                if 'comments_html' in answer and answer['comments_html']:
                     a['comment'] = h2m(answer['comments_html'])
                 result['answers'][blank_id].append(a)
         return result
