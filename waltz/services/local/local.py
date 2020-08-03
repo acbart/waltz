@@ -183,9 +183,9 @@ class Local(Service):
 
     def write(self, destination_path, body):
         ensure_dir(destination_path)
-        with open(destination_path, 'w') as output_file:
+        with open(destination_path, 'w', encoding='utf8') as output_file:
             output_file.write(body)
 
     def read(self, source_path):
-        with open(source_path, 'r') as input_file:
+        with open(source_path, 'r', encoding='utf8') as input_file:
             return input_file.read()
