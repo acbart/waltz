@@ -92,11 +92,11 @@ class Assignment(CanvasResource):
         return json.dumps({
             'name': waltz['title'],
             'description': body,
-            'html_url': waltz['url'],
+            'html_url': waltz.get('url', ''),
             'published': waltz['published'],
             # General settings
             'points_possible': settings['points_possible'],
-            'grading_type': settings['grading_type'],
+            'grading_type': settings.get('grading_type'),
             # Submissions
             'allowed_extensions': submission.get('allowed_extensions'),
             'submission_types': submission['submission_types'],
@@ -105,6 +105,6 @@ class Assignment(CanvasResource):
             'unlock_at': from_friendly_date(timing['unlock_at']),
             'lock_at': from_friendly_date(timing['lock_at']),
             # Secrecy
-            'anonymize_students': secrecy['anonymize_students'],
-            'anonymous_grading': secrecy['anonymous_grading']
+            'anonymize_students': secrecy.get('anonymize_students', False),
+            'anonymous_grading': secrecy.get('anonymous_grading', False)
         })
