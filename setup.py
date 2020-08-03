@@ -13,7 +13,7 @@ setup(name='lms-waltz',
               'waltz = waltz.__main__:main'
           ]
       },
-      version='0.2.1',
+      version='0.2.2',
       description='Coordinate resources between an LMS like Canvas and a local directory',
       keywords= 'lms learning management system curriculum curricular resources',
       long_description=long_description,
