@@ -143,21 +143,6 @@ class QuizQuestion(CanvasResource):
             'question[neutral_comments_html]': data['neutral_comments_html'],
         }
 
-
-
-    def push(self, course, quiz_id, name_map, json_data):
-        '''
-        Get all the questions in this quiz
-        If this name is already in the quiz, then update it's compnents.
-        Otherwise, create a new element.
-        '''
-        if self.question_name in name_map:
-            id = name_map[self.question_name]
-            result = put("quizzes/{quiz}/questions/{question}/".format(
-                quiz=quiz_id, question=id
-            ), data=json_data, course=course.course_name)
-        else:
-            result = post("quizzes/{quiz}/questions/".format(
-                quiz=quiz_id
-            ), data=json_data, course=course.course_name)
-
+    @classmethod
+    def _get_field(cls, data):
+        return data['html'] if 'html' in data and data['html'] else data['text']

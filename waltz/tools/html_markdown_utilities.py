@@ -103,6 +103,8 @@ def handle_custom_tags(self, tag, attrs, start):
         if start:
             self.out("\n```")
             if "class" in attrs:
+                if "highlight-source-java" in attrs["class"]:
+                    self.out("java")
                 if "highlight-source-python" in attrs["class"]:
                     self.out("python")
                 else:
