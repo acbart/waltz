@@ -41,6 +41,8 @@ from waltz.registry import Registry
 
 def parse_command_line(args):
     parser = argparse.ArgumentParser(prog='waltz', description='Sync resources between services for a course')
+    parser.set_defaults(func=lambda args: parser.print_help())
+
     parser.add_argument('--waltz_directory', type=str, default="./",
                         help="Path to the main waltz directory with the Waltz registry and DB file.")
     subparsers = parser.add_subparsers(help='Available commands')
