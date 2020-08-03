@@ -127,7 +127,7 @@ class Quiz(CanvasResource):
         # Edit the quiz on canvas
         quiz_data = cls._make_canvas_upload(registry, new_quiz, args)
         canvas.api.put('quizzes/{quiz_id}'.format(quiz_id=quiz_id), data=quiz_data)
-        print("Created quiz", old_quiz['title'], "on canvas")
+        print("Updated quiz", old_quiz['title'], "on canvas")
         # Make a map of the old groups' names/ids to the groups
         old_group_map = {}
         for group in old_quiz['groups'].values():

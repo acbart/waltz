@@ -44,7 +44,7 @@ class Page(CanvasResource):
         return h2m(raw_data['body'], {
             'title': raw_data['title'],
             'resource': 'page',
-            'published': raw_data['published']
+            'published': raw_data.get('published', False)
         }), []
 
     @classmethod
@@ -53,7 +53,7 @@ class Page(CanvasResource):
         body = hide_data_in_html(regular, m2h(body))
         return json.dumps({
             'title': waltz['title'],
-            'published': waltz['published'],
+            'published': waltz.get('published', False),
             'body': body
             # TODO: Other fields
         })

@@ -14,7 +14,7 @@ class MultipleAnswersQuestion(QuizQuestion):
         result['answers'] = []
         for answer in data['answers']:
             a = CommentedMap()
-            html = h2m(answer['html'])
+            html = h2m(cls._get_field(answer))
             if args.hide_answers:
                 a['possible'] = html
             else:
@@ -30,12 +30,16 @@ class MultipleAnswersQuestion(QuizQuestion):
     @classmethod
     def encode_json_raw(cls, registry: Registry, data, args):
         result = QuizQuestion.encode_question_common(registry, data, args)
-        result['answers'] = [
-            {'comments_html': m2h(answer.get('comment', "")),
-             'weight': 100 if 'correct' in answer else 0,
-             'text': answer['correct'] if 'correct' in answer else answer['wrong'],
-             'html': m2h(answer['correct'] if 'correct' in answer else answer['wrong'])}
-            for answer in data['answers']]
+        text_mode = data['mode'] == 'text' if 'mode' in data else False
+        result['answers'] = []
+        for answer in data['answers']:
+            result_answer = {'comments_html': m2h(answer.get('comment', "")),
+                             'weight': 100 if 'correct' in answer else 0,
+                             'text': answer['correct'] if 'correct' in answer else answer['wrong'],
+                             'html': m2h(answer['correct'] if 'correct' in answer else answer['wrong'])}
+            if text_mode:
+                del result_answer['html']
+            result['answers'].append(result_answer)
         return result
 
     @classmethod
@@ -43,7 +47,8 @@ class MultipleAnswersQuestion(QuizQuestion):
         result = QuizQuestion._make_canvas_upload_common(registry, data, args)
         for index, answer in enumerate(data['answers']):
             base = 'question[answers][{index}]'.format(index=index)
-            result[base + "[answer_html]"] = answer['html']
+            if 'html' in answer:
+                result[base + "[answer_html]"] = answer['html']
             result[base + "[answer_text]"] = answer['text']
             result[base + "[answer_comment_html]"] = answer['comments_html']
             result[base + "[answer_weight]"] = answer['weight']

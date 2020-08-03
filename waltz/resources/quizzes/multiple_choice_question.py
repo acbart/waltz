@@ -14,7 +14,7 @@ class MultipleChoiceQuestion(QuizQuestion):
         result['answers'] = []
         for answer in data['answers']:
             a = CommentedMap()
-            html = h2m(answer['html'])
+            html = h2m(cls._get_field(answer))
             if args.hide_answers:
                 a['possible'] = html
             else:
