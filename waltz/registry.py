@@ -1,3 +1,4 @@
+import gc
 import logging
 import os
 import sqlite3
@@ -118,6 +119,10 @@ class Registry:
     def reset_database(self):
         self.db.close()
         waltz_database_path = self.get_waltz_database_path(self.directory)
+        # TODO: Are these still necessary? My gut says no.
+        # del self.db
+        # import gc
+        # gc.collect()
         os.remove(waltz_database_path)
         self.db = sqlite3.connect(waltz_database_path)
         self.create_database()
@@ -146,7 +151,7 @@ class Registry:
                 results
             )
         elif not results or not resources.rowcount:
-            raise WaltzResourceNotFound("Could not find resource {}.".format(" ".join(terms.values())))
+            raise WaltzResourceNotFound("Could not find resource {}.".format(" ".join(map(str, terms.values()))))
         else:
             return RawResource.from_database(results[0])
 

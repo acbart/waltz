@@ -39,5 +39,5 @@ setup(name='lms-waltz',
           "Operating System :: OS Independent",
           "Typing :: Typed"
       ],
-      python_requires='>=3.5',
+      python_requires='>=3.6',
       )

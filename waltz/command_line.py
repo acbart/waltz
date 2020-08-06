@@ -79,6 +79,9 @@ def parse_command_line(args):
         for name, services in registry.services.items():
             for service_type in services:
                 service_type.add_parser_list(parser_list_services, service_type.name)
+        # TODO: Make this close more elegant
+        #   It's absolutely needed though, otherwise the DB stays open!
+        registry.db.close()
     parser_list.set_defaults(func=actions.List)
 
     # Show [Course|Service]
@@ -150,6 +153,7 @@ def parse_command_line(args):
                              help="Whether to combine all subresources into a single file.")
     parser_diff.add_argument("--hide_answers", action='store_true', default=False,
                              help="Whether to hide answers to any questions.")
+    parser_diff.add_argument("--destination", "-d", type=str, help="The destination directory for this resource.")
     add_id_and_url(parser_diff)
     parser_diff.set_defaults(func=actions.Diff)
 

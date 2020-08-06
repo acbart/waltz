@@ -1,11 +1,14 @@
 import json
 from pprint import pprint
 
+from types import SimpleNamespace
 from natsort import natsorted
 from tabulate import tabulate
 
 from waltz.exceptions import WaltzAmbiguousResource, WaltzResourceNotFound
 from waltz.registry import Registry
+from waltz.resources.blockpy_group import BlockPyGroup
+from waltz.resources.problem import Problem
 from waltz.resources.resource import Resource
 from waltz.tools.utilities import blockpy_string_to_datetime
 
@@ -47,17 +50,46 @@ class BlockPyCourse(Resource):
             raise WaltzAmbiguousResource("Too many courses with URL '{}'".format(args.title))
         elif not potentials:
             raise WaltzResourceNotFound("No course with URL '{}' found.".format(args.title))
-        bundle = blockpy.api.get('export/', json={'course_id': potentials[0]['id']})
-        # Assignments
-        for assignment in bundle['assignments']:
-            registry.store_resource(blockpy.name, 'problem', assignment['url'], "", json.dumps(assignment))
+        course_id = potentials[0]['id']
+        bundle = blockpy.api.get('export/', json={'course_id': course_id})
+        records = {
+            'problems': {},
+            'groups': []
+        }
         # Memberships
         groups_assignments = {}
         for membership in bundle['memberships']:
             if membership['assignment_group_url'] not in groups_assignments:
                 groups_assignments[membership['assignment_group_url']] = []
-            groups_assignments[membership['assignment_group_url']].append(membership['assignment_url'])
+                records['problems'][membership['assignment_group_url']] = []
+            better_url = membership['assignment_url']
+            if better_url is None:
+                better_url = membership['assignment_id']
+            groups_assignments[membership['assignment_group_url']].append(better_url)
+            records['problems'][membership['assignment_group_url']].append(better_url)
+        # Assignments
+        for assignment in bundle['assignments']:
+            registry.store_resource(blockpy.name, 'problem', assignment['url'], "", json.dumps(assignment))
         # Groups
         for group in bundle['groups']:
             group['problems'] = groups_assignments.get(group['url'], [])
+            records['groups'].append(group['url'])
             registry.store_resource(blockpy.name, 'blockpy_group', group['url'], "", json.dumps(group))
+        registry.store_resource(blockpy.name, 'blockpy_course', args.title, course_id, json.dumps(records))
+
+    @classmethod
+    def decode(cls, registry: Registry, args):
+        course = registry.find_resource(title=args.title, service=args.service, category=cls.name)
+        data = json.loads(course.data)
+        original_destination = args.destination
+        for group in data['groups']:
+            custom_args = SimpleNamespace(**vars(args))
+            custom_args.title = group
+            BlockPyGroup.decode(registry, custom_args)
+        for group, problems in data['problems'].items():
+            for problem in problems:
+                custom_args = SimpleNamespace(**vars(args))
+                custom_args.title = problem
+                custom_args.destination = group
+                Problem.decode(registry, custom_args)
+

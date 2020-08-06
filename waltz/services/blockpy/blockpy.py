@@ -56,6 +56,8 @@ class BlockPy(Service):
             self.RESOURCES['blockpy_course'].list(registry, self, args)
         elif args.category in ('problem', 'problems', 'blockpy_problem', 'blockpy_problems'):
             self.RESOURCES['problem'].list(registry, self, args)
+        elif args.category in ('group', 'groups', 'blockpy_group', 'blockpy_groups'):
+            self.RESOURCES['group'].list(registry, self, args)
         # waltz list blockpy courses
         # waltz list blockpy groups
         pass

@@ -23,6 +23,39 @@ def make_safe_filename(name):
     return filename
 
 
+def make_end_path(path):
+    """ Prepends a path '../' parent markers to specify the parent
+     directories of a path, but consider it locally. """
+    parts = pathlib.Path(path).parts
+    parent_directory_markers = parts.count('..')
+    parent_prepends = '../'*(len(parts) - parent_directory_markers*2 - 1)
+    final_path = os.path.join(parent_prepends, path)
+    return final_path
+
+
+def all_path_parts_match(full_path, end_path):
+    """
+    Determines that the given ``full_path`` ends with the given ``end_path``,
+    correctly handling nested directories. This is a pretty simple check if
+    the ``end_path`` is just a single file.
+
+    Args:
+        full_path (str):
+        end_path (str):
+
+    Returns:
+        bool: Whether or not they match.
+    """
+    end_path_parts = pathlib.Path(end_path).parts[::-1]
+    full_path_parts = pathlib.Path(full_path).parts[::-1]
+    return all(left == right
+               for left, right in zip(end_path_parts, full_path_parts))
+
+
+def get_parent_directory(path):
+    return pathlib.Path(path).parent.parent
+
+
 def json_bool(boolean_value):
     return 'true' if boolean_value else 'false'
 

@@ -8,7 +8,7 @@ from waltz.exceptions import WaltzException, WaltzAmbiguousResource
 from waltz.resources.raw import RawResource
 from waltz.services.service import Service
 from waltz.tools import yaml, extract_front_matter
-from waltz.tools.utilities import make_safe_filename, ensure_dir
+from waltz.tools.utilities import make_safe_filename, ensure_dir, make_end_path, all_path_parts_match
 
 
 class Local(Service):
@@ -148,17 +148,31 @@ class Local(Service):
         return []
 
     @classmethod
-    def make_markdown_filename(cls, filename):
-        return make_safe_filename(filename) + ".md"
+    def make_markdown_filename(cls, filename, folder_file=None,
+                               extension='.md'):
+        start = make_safe_filename(filename)
+        if folder_file is None:
+            return start + extension
+        return os.path.join(start, folder_file + extension)
 
     @classmethod
     def make_diff_filename(cls, filename):
         return make_safe_filename(filename) + ".diff.html"
 
-    def find_existing(self, registry, title: str, check_front_matter=False, top_directories=None):
+    def find_existing(self, registry, title: str,
+                      check_front_matter=False, top_directories=None,
+                      folder_file=None, extension='.md'):
         # Get the path to the file
-        safe_filename = self.make_markdown_filename(title)
-        if not os.path.exists(safe_filename):
+        safe_filename = self.make_markdown_filename(title, folder_file=folder_file,
+                                                    extension=extension)
+        # Is the exact filepath here?
+        if os.path.exists(safe_filename):
+            return safe_filename
+        # Ah, are we in the containing directory for the path?
+        if os.path.exists(make_end_path(safe_filename)):
+            return make_end_path(safe_filename)
+        # Okay, search recursively from the .waltz file
+        else:
             if top_directories is None:
                 top_directories = [registry.search_up_for_waltz_registry('./')]
             potential_files = []
@@ -166,7 +180,7 @@ class Local(Service):
                 for root, dirs, files in os.walk(top_directory):
                     for file in files:
                         potential_file = os.path.join(root, file)
-                        if file == safe_filename:
+                        if all_path_parts_match(potential_file, safe_filename):
                             potential_files.append(potential_file)
                         elif check_front_matter and file.endswith(".md"):
                             _, waltz, _ = extract_front_matter(self.read(potential_file))
