@@ -16,9 +16,9 @@ class TrueFalseQuestion(QuizQuestion):
             for answer in data['answers']:
                 if answer['text'] == 'True':
                     result['answer'] = True if answer['weight'] else False
-                    if answer['comments_html']:
+                    if answer.get('comments_html'):
                         comments['if_true_chosen'] = h2m(answer['comments_html'])
-                elif answer['comments_html']:
+                elif answer.get('comments_html'):
                     comments['if_false_chosen'] = h2m(answer['comments_html'])
             if comments and any(comments.values()):
                 result['comments'] = comments

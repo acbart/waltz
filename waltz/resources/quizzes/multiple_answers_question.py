@@ -22,7 +22,7 @@ class MultipleAnswersQuestion(QuizQuestion):
                     a['correct'] = html
                 else:
                     a['wrong'] = html
-                if answer['comments_html']:
+                if answer.get('comments_html'):
                     a['comment'] = h2m(answer['comments_html'])
             result['answers'].append(a)
         return result

@@ -25,7 +25,7 @@ class MultipleDropDownsQuestion(QuizQuestion):
                     a['correct'] = text
                 else:
                     a['wrong'] = text
-                if answer['comments_html']:
+                if answer.get('comments_html'):
                     a['comment'] = h2m(answer['comments_html'])
             result['answers'][blank_id].append(a)
         return result
