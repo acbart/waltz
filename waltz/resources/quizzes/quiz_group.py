@@ -67,6 +67,8 @@ class QuizGroup(CanvasResource):
         Get all the questions in this quiz
         If this name is already in the quiz, then update it's compnents.
         Otherwise, create a new element.
+
+        TODO: I think this is deprecated?
         '''
         if self.name in group_map:
             id = group_map[self.name]
