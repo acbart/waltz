@@ -35,7 +35,8 @@ class QuizQuestion(CanvasResource):
         local = registry.get_service(args.local_service, 'local')
         title = question['question_name']
         try:
-            destination_path = local.find_existing(registry, title)
+            destination_path = local.find_existing(registry, args.title,
+                                                   folder_file=title)
         except FileNotFoundError:
             destination_path = local.make_markdown_filename(title)
             if args.banks:
@@ -45,7 +46,7 @@ class QuizQuestion(CanvasResource):
                                                        quiz_id=quiz['id'])
                 destination_path = os.path.join(first_bank_path, destination_path)
             else:
-                first_bank_path = make_safe_filename('{quiz_title} Questions'.format(quiz_title=quiz['title']))
+                first_bank_path = make_safe_filename(quiz['title'])
                 if args.destination:
                     destination_path = os.path.join(args.destination, first_bank_path, destination_path)
                 else:
@@ -113,7 +114,8 @@ class QuizQuestion(CanvasResource):
     def encode_question_by_title(cls, registry: Registry, title: str, args):
         local = registry.get_service(args.local_service, 'local')
         # TODO: By default limit search to "<Quiz> Questions/" folder?
-        source_path = local.find_existing(registry, title,
+        source_path = local.find_existing(registry, args.title,
+                                          folder_file=title,
                                           check_front_matter=True, top_directories=args.banks)
         decoded_markdown = local.read(source_path)
         regular, waltz, body = extract_front_matter(decoded_markdown)

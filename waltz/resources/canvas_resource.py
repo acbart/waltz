@@ -20,7 +20,6 @@ class CanvasResource(Resource):
     default_service = 'canvas'
     title_attribute: str = 'title'
 
-
     @classmethod
     def sort_resource(cls, resource):
         for attribute in ['title', 'name', 'id']:
@@ -37,7 +36,7 @@ class CanvasResource(Resource):
         rows = []
         for resource in natsorted(resources, key=cls.sort_resource):
             try:
-                path = local.find_existing(registry, resource[cls.title_attribute])
+                path = local.find_existing(registry, resource[cls.title_attribute], args=args)
                 rows.append(("Yes", "Yes", resource[cls.title_attribute], os.path.relpath(path)))
             except WaltzAmbiguousResource as war:
                 paths = "\n".join(os.path.relpath(path) for path in war.args[0])
@@ -64,7 +63,7 @@ class CanvasResource(Resource):
         rows = []
         for resource in tqdm(natsorted(resources, key=cls.sort_resource)):
             try:
-                path = local.find_existing(registry, resource[cls.title_attribute])
+                path = local.find_existing(registry, resource[cls.title_attribute], args=args)
                 rows.append(("Yes", "Yes", resource[cls.title_attribute], os.path.relpath(path)))
             except WaltzAmbiguousResource as war:
                 paths = "\n".join(os.path.relpath(path) for path in war.args[0])
@@ -117,9 +116,9 @@ class CanvasResource(Resource):
             raw_resources = [registry.find_resource(title=args.title, service=args.service, category=cls.name)]
         for raw_resource in raw_resources:
             try:
-                destination_path = local.find_existing(registry, raw_resource.title)
+                destination_path = local.find_existing(registry, raw_resource.title, args=args, folder_file=cls.folder_file)
             except FileNotFoundError:
-                destination_path = local.make_markdown_filename(raw_resource.title)
+                destination_path = local.make_markdown_filename(raw_resource.title, folder_file=cls.folder_file)
                 if args.destination:
                     destination_path = os.path.join(args.destination, destination_path)
             decoded_markdown, extra_files = cls.decode_json(registry, raw_resource.data, args)
@@ -130,7 +129,7 @@ class CanvasResource(Resource):
     @classmethod
     def encode(cls, registry: Registry, args):
         local = registry.get_service(args.local_service, 'local')
-        source_path = local.find_existing(registry, args.title)
+        source_path = local.find_existing(registry, args.title, args=args, folder_file=cls.folder_file)
         decoded_markdown = local.read(source_path)
         data = cls.encode_json(registry, decoded_markdown, args)
         registry.store_resource(args.service, cls.name, args.title, "", data)

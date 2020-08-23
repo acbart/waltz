@@ -16,6 +16,7 @@ class BlockPyGroup(Resource):
     name = "blockpy_group"
     name_plural = "blockpy_groups"
     category_names = ["blockpy_group", "blockpy_groups"]
+    folder_file = 'index'
 
     @classmethod
     def decode(cls, registry: Registry, args):

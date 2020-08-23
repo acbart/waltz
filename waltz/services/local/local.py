@@ -161,10 +161,14 @@ class Local(Service):
 
     def find_existing(self, registry, title: str,
                       check_front_matter=False, top_directories=None,
-                      folder_file=None, extension='.md'):
+                      folder_file=None, extension='.md', args=None):
         # Get the path to the file
-        safe_filename = self.make_markdown_filename(title, folder_file=folder_file,
-                                                    extension=extension)
+        if hasattr(args, 'filename') and args.filename and os.path.exists(args.filename):
+            safe_filename = args.filename
+            args.title = self.get_title(args.filename)
+        else:
+            safe_filename = self.make_markdown_filename(title, extension=extension,
+                                                        folder_file=folder_file)
         # Is the exact filepath here?
         if os.path.exists(safe_filename):
             return safe_filename
@@ -203,3 +207,9 @@ class Local(Service):
     def read(self, source_path):
         with open(source_path, 'r', encoding='utf8') as input_file:
             return input_file.read()
+
+    def get_title(self, filename):
+        data = self.read(filename)
+        regular, waltz, body = extract_front_matter(data)
+        filename_as_title = os.path.splitext(os.path.basename(filename))[0]
+        return waltz.get('title', filename_as_title)

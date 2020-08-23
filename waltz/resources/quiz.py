@@ -55,6 +55,7 @@ class Quiz(CanvasResource):
     endpoint = 'quizzes/'
     category_names = ['quiz', 'quizzes']
     id = "id"
+    folder_file = 'index'
 
     @classmethod
     def find(cls, canvas, title):
@@ -310,11 +311,14 @@ class Quiz(CanvasResource):
         regular, waltz, body = extract_front_matter(data)
         for question in waltz['questions']:
             if isinstance(question, str):
-                destination_path = local.find_existing(registry, question,
-                                                       check_front_matter=True, top_directories=args.banks)
+                destination_path = local.find_existing(registry, args.title,
+                                                       folder_file=question,
+                                                       check_front_matter=True,
+                                                       top_directories=args.banks)
                 yield destination_path, local.read(destination_path)
             elif 'group' in question:
                 for inner_question in question['questions']:
                     if isinstance(inner_question, str):
-                        destination_path = local.find_existing(registry, inner_question)
+                        destination_path = local.find_existing(registry, args.title,
+                                                               folder_file=inner_question)
                         yield destination_path, local.read(destination_path)

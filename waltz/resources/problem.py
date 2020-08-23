@@ -13,7 +13,7 @@ from waltz.resources.raw import RawResource
 from waltz.resources.resource import Resource
 from waltz.tools.html_markdown_utilities import hide_data_in_html, m2h, add_to_front_matter
 from waltz.tools.utilities import get_files_last_update, from_canvas_date, to_friendly_date_from_datetime, start_file, \
-    blockpy_string_to_datetime, from_friendly_date, get_parent_directory
+    blockpy_string_to_datetime, from_friendly_date
 
 
 # TODO: Template support
@@ -63,7 +63,6 @@ class Problem(Resource):
                                                                 folder_file=cls.folder_file)
                 if args.destination:
                     destination_path = os.path.join(args.destination, destination_path)
-            base = get_parent_directory(destination_path)
             decoded_markdown, extra_files = cls.decode_json(registry, raw_resource.data, args)
             local.write(destination_path, decoded_markdown)
             for path, data in extra_files:
@@ -112,15 +111,24 @@ class Problem(Resource):
         # TODO: Tags
         # TODO: Sample Submissions. Have a "samples/" folder?
         # TODO: If args.combine, then put it all into one file
-        files_path = raw_data['url']  # "{} files/".format(raw_data['url'])
+        files_path = raw_data['url']
         result['files'] = CommentedMap()
         result['files']['path'] = files_path
         result['files']['hidden but accessible files'] = []
         result['files']['instructor only files'] = []
         result['files']['extra starting files'] = []
         result['files']['read-only files'] = []
+        # Check if index file exists; if so, that's our directory target
+        local = registry.get_service(args.local_service, 'local')
+        try:
+            index_path = local.find_existing(registry, files_path,
+                                                   folder_file=cls.folder_file)
+            files_path = os.path.dirname(index_path)
+        except FileNotFoundError:
+            pass
         if hasattr(args, 'destination') and args.destination:
             files_path = os.path.join(args.destination, files_path)
+        # Then build up the extra instructor files
         extra_files = [
             (os.path.join(files_path, "on_run.py"), raw_data['on_run']),
             (os.path.join(files_path, "starting_code.py"), raw_data['starting_code'])
@@ -138,6 +146,7 @@ class Problem(Resource):
                     extra_files.append((new_path, eif_contents))
                     special_file_type = cls.SPECIAL_INSTRUCTOR_FILES[eif_filename[0]]
                     result['files'][special_file_type].append(new_path)
+        # Put instructions up front and return the result
         return add_to_front_matter(raw_data['instructions'], result), extra_files
 
     @classmethod

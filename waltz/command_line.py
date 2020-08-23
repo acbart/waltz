@@ -96,6 +96,7 @@ def parse_command_line(args):
     def add_id_and_url(subparser):
         subparser.add_argument("--id", help="A resource-specific ID to disambiguate this resource definitively.")
         subparser.add_argument("--url", help="A resource-specific URL to disambiguate this resource definitively.")
+        subparser.add_argument("--filename", help="A resource-specific local Filename to disambiguate this resource definitively.")
         subparser.add_argument("--all", action='store_true', help="Get all the resources of this type.")
 
     # Download

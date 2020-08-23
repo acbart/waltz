@@ -75,7 +75,8 @@ class Resource:
         local = registry.get_service(args.local_service, 'local')
         source_path = None
         try:
-            source_path = local.find_existing(registry, args.title, folder_file=cls.folder_file)
+            source_path = local.find_existing(registry, args.title,
+                                              folder_file=cls.folder_file, args=args)
         except FileNotFoundError:
             print("No local version of {}".format(args.title))
         # Get remote version
@@ -94,8 +95,11 @@ class Resource:
         #extra_local_files, extra_remote_files = dict(extra_local_files), dict(extra_remote_files)
         extra_local_files={os.path.normpath(local_path): local_data
                             for local_path, local_data in dict(extra_local_files).items()}
-        extra_remote_files = {os.path.normpath(os.path.join(local_base, remote_path)): remote_data
+        extra_remote_files = {os.path.normpath(remote_path): remote_data
                               for remote_path, remote_data in dict(extra_remote_files).items()}
+        print(dict(extra_local_files).keys())
+        print(local_base)
+        print(dict(extra_remote_files).keys())
         if args.console:
             # Handle main file
             for difference in difflib.ndiff(local_markdown.splitlines(True), remote_markdown.splitlines(True)):
@@ -120,14 +124,17 @@ class Resource:
             # Handle extra files
             for local_path, local_data in extra_local_files.items():
                 if local_path in extra_remote_files:
+                    # File exists in remote and local
                     remote_data = extra_remote_files[local_path].splitlines()
                 else:
+                    # Local files that are not in the remote
                     remote_data = []
                 combined_diffs.append("<strong>{}</strong>".format(local_path))
                 combined_diffs.append(html_differ.make_table(local_data.splitlines(), remote_data,
                                                              fromdesc="Local",
                                                              todesc=service_name))
             for remote_path, remote_data in extra_remote_files.items():
+                # Remote files that are not in the local
                 if remote_path not in extra_local_files:
                     combined_diffs.append("<strong>{}</strong>".format(remote_path))
                     combined_diffs.append(html_differ.make_table([], remote_data.splitlines(),
