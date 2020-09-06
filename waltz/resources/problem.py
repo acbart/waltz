@@ -6,6 +6,7 @@ from pprint import pprint
 
 from ruamel.yaml.comments import CommentedMap
 
+from waltz.exceptions import WaltzAmbiguousResource, WaltzResourceNotFound
 from waltz.registry import Registry
 from waltz.resources.canvas_resource import CanvasResource
 from waltz.tools import h2m, extract_front_matter
@@ -33,6 +34,19 @@ class Problem(Resource):
         bundle = blockpy.api.get('export', json={'assignment_url': title})
         assignments = bundle.get('assignments', [])
         return assignments[0] if assignments else None
+
+    @classmethod
+    def download(cls, registry: Registry, args):
+        blockpy = registry.get_service(args.service, "blockpy")
+        bundle = blockpy.api.get('export/', json={'assignment_url': args.title})
+        potentials = bundle['assignments']
+        # Assignments
+        if len(potentials) > 1:
+            raise WaltzAmbiguousResource(f"Too many problems with URL '{args.title}'")
+        elif not potentials:
+            raise WaltzResourceNotFound(f"No problem with URL '{args.title}' found.")
+        assignment = potentials[0]
+        registry.store_resource(blockpy.name, 'problem', assignment['url'], "", json.dumps(assignment))
 
     @classmethod
     def upload(cls, registry: Registry, args):
