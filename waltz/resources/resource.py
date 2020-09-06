@@ -97,9 +97,6 @@ class Resource:
                             for local_path, local_data in dict(extra_local_files).items()}
         extra_remote_files = {os.path.normpath(remote_path): remote_data
                               for remote_path, remote_data in dict(extra_remote_files).items()}
-        print(dict(extra_local_files).keys())
-        print(local_base)
-        print(dict(extra_remote_files).keys())
         if args.console:
             # Handle main file
             for difference in difflib.ndiff(local_markdown.splitlines(True), remote_markdown.splitlines(True)):
