@@ -203,7 +203,8 @@ markdowner = Markdown(extensions=[
     extension_directory+'decorate_tables:TableDecoratorExtension'
 ], extension_configs={
     'codehilite': {
-    'noclasses': True
+        'noclasses': True,
+        'linenums': True,
 }})
 
 
