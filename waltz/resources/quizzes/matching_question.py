@@ -25,7 +25,8 @@ class MatchingQuestion(QuizQuestion):
                 if answer.get('comments_html'):
                     a['comment'] = h2m(answer['comments_html'])
                 result['answers'].append(a)
-            result["distractors"] = data['matching_answer_incorrect_matches'].split("\n")
+            if data.get('matching_answer_incorrect_matches'):
+                result["distractors"] = data['matching_answer_incorrect_matches'].split("\n")
         return result
 
     @classmethod

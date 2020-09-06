@@ -16,7 +16,7 @@ class ShortAnswerQuestion(QuizQuestion):
             for answer in data['answers']:
                 a = CommentedMap()
                 a['text'] = answer['text']
-                if answer['comments_html']:
+                if answer.get('comments_html'):
                     a['comment'] = h2m(answer['comments_html'])
                 result['answers'].append(a)
         return result
