@@ -179,7 +179,7 @@ class Quiz(CanvasResource):
             if question['id'] not in used_questions:
                 canvas.api.delete('quizzes/{quiz_id}/questions/{question_id}'.format(quiz_id=quiz_id,
                                                                                      question_id=question['id']))
-                print("Deleted question", question['name'], " (ID: {})".format(question['id']))
+                print("Deleted question", question.get('name', "NO NAME"), " (ID: {})".format(question['id']))
 
     REQUIRED_UPLOAD_FIELDS = ['title', 'description', 'quiz_type']
     OPTIONAL_UPLOAD_FIELDS = ['time_limit', 'shuffle_answers', 'hide_results',
@@ -218,9 +218,9 @@ class Quiz(CanvasResource):
         result['settings']['timing']['unlock_at'] = to_friendly_date(raw_data['unlock_at'])
         result['settings']['timing']['lock_at'] = to_friendly_date(raw_data['lock_at'])
         result['settings']['secrecy'] = CommentedMap()
-        result['settings']['secrecy']['one_question_at_a_time'] = raw_data['one_question_at_a_time']
         result['settings']['secrecy']['shuffle_answers'] = raw_data['shuffle_answers']
         result['settings']['secrecy']['time_limit'] = raw_data['time_limit']
+        result['settings']['secrecy']['one_question_at_a_time'] = raw_data['one_question_at_a_time']
         result['settings']['secrecy']['cant_go_back'] = raw_data['cant_go_back']
         result['settings']['secrecy']['show_correct_answers'] = raw_data['show_correct_answers']
         result['settings']['secrecy']['show_correct_answers_last_attempt'] = raw_data['show_correct_answers_last_attempt']
@@ -288,16 +288,16 @@ class Quiz(CanvasResource):
             'unlock_at': from_friendly_date(timing.get('unlock_at')),
             'lock_at': from_friendly_date(timing.get('lock_at')),
             # Secrecy
-            'one_question_at_a_time': secrecy.get('one_question_at_a_time'),
-            'shuffle_answers': secrecy.get('shuffle_answers'),
+            'one_question_at_a_time': int(secrecy.get('one_question_at_a_time', 0)),
+            'shuffle_answers': int(secrecy.get('shuffle_answers', 0)),
             'time_limit': secrecy.get('time_limit'),
-            'cant_go_back': secrecy.get('cant_go_back'),
-            'show_correct_answers': secrecy.get('show_correct_answers'),
+            'cant_go_back': int(secrecy.get('cant_go_back', 0)),
+            'show_correct_answers': int(secrecy.get('show_correct_answers', 1)),
             'show_correct_answers_last_attempt': secrecy.get('show_correct_answers_last_attempt'),
             'show_correct_answers_at': secrecy.get('show_correct_answers_at'),
             'hide_correct_answers_at': secrecy.get('hide_correct_answers_at'),
             'hide_results': secrecy.get('hide_results'),
-            'one_time_results': secrecy.get('one_time_results'),
+            'one_time_results': int(secrecy.get('one_time_results', 0)),
             'access_code': secrecy.get('access_code'),
             'ip_filter': secrecy.get('ip_filter'),
             # Questions and Groups
