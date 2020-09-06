@@ -9,6 +9,7 @@ from waltz.resources.quizzes.multiple_choice_question import MultipleChoiceQuest
 from waltz.resources.quizzes.short_answer_question import ShortAnswerQuestion
 from waltz.resources.quizzes.text_only_question import TextOnlyQuestion
 from waltz.resources.quizzes.true_false_question import TrueFalseQuestion
+from waltz.resources.quizzes.file_upload_question import FileUploadQuestion
 
 QuizQuestion.register_type(MultipleChoiceQuestion)
 QuizQuestion.register_type(TrueFalseQuestion)
@@ -20,3 +21,4 @@ QuizQuestion.register_type(MatchingQuestion)
 QuizQuestion.register_type(NumericalQuestion)
 QuizQuestion.register_type(EssayQuestion)
 QuizQuestion.register_type(TextOnlyQuestion)
+QuizQuestion.register_type(FileUploadQuestion)
