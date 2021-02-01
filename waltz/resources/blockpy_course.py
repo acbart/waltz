@@ -1,5 +1,7 @@
 import json
 from pprint import pprint
+from tqdm import tqdm
+import os
 
 from types import SimpleNamespace
 from natsort import natsorted
@@ -82,14 +84,16 @@ class BlockPyCourse(Resource):
         course = registry.find_resource(title=args.title, service=args.service, category=cls.name)
         data = json.loads(course.data)
         original_destination = args.destination
-        for group in data['groups']:
+        for group in tqdm(data['groups']):
             custom_args = SimpleNamespace(**vars(args))
             custom_args.title = group
             BlockPyGroup.decode(registry, custom_args)
-        for group, problems in data['problems'].items():
-            for problem in problems:
+        for group, problems in tqdm(data['problems'].items(), desc='Group'):
+            print(group)
+            for problem in tqdm(problems, desc='Problem'):
+                print(problem)
                 custom_args = SimpleNamespace(**vars(args))
                 custom_args.title = problem
                 custom_args.destination = group
+                custom_args.all = False
                 Problem.decode(registry, custom_args)
-
