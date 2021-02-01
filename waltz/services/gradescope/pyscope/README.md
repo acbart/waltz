@@ -1,3 +1,11 @@
+This entire vendored module is taken from <https://github.com/apozharski/gradescope-api>
+
+As described below, it is a TERRIBLE solution to the real problem.
+Hopefully the GradeScope folks get an API going at some point, and we can avoid
+this kind of mess long term.
+
+Anyway, this stuff mostly doesn't work. Here be dragons.
+
 # Gradescope API
 This is an initial attempt at reverse engineering gradescope to allow for automated submission and controlling other
 behaviour in an automated way as there is no official gradescope API.

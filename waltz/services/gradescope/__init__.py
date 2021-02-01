@@ -1,0 +1,10 @@
+from waltz.resources.gradescope_assignment import GradeScopeAssignment
+from waltz.resources.gradescope_course import GradeScopeCourse
+from waltz.defaults import register_service_type
+from waltz.services.gradescope.gradescope import GradeScope
+
+
+GradeScope.register_resource(GradeScopeAssignment)
+GradeScope.register_resource(GradeScopeCourse)
+
+register_service_type(GradeScope)
