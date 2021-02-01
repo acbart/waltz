@@ -124,3 +124,15 @@ def start_file(filename):
         os.startfile(filename)
     except AttributeError:
         os.subprocess.call(['open', filename])
+
+
+def find_all_files(path, trail=None):
+    if trail is None:
+        trail = []
+    for filename in os.listdir(path):
+        new_path = os.path.join(path, filename)
+        if os.path.isdir(new_path):
+            yield from find_all_files(new_path, trail+[filename])
+        else:
+            yield os.path.join(*trail, filename)
+
