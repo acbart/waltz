@@ -15,9 +15,12 @@ html_to_markdown = HTML2Text()
 html_to_markdown.single_line_break= False
 html_to_markdown.skip_internal_links = False
 html_to_markdown._skip_a_class_check = False
+html_to_markdown.body_width = 120
+html_to_markdown.wrap_links = False
 html_to_markdown._class_stack = []
 
 WALTZ_METADATA_CLASS = "-waltz-metadata-hidden"
+WALTZ_LITERAL_CLASS = "-waltz-literal"
 
 
 class ExtractWaltzMetadata(HTMLParser):
@@ -44,6 +47,11 @@ class ExtractWaltzMetadata(HTMLParser):
             self.data.append(data)
 
 
+def make_html_tag(tag, attrs):
+    attrs = " ".join(f'{attr}="{values}"' for attr, values in attrs.items())
+    return f"<{tag} {attrs}>"
+
+
 def handle_custom_tags(self, tag, attrs, start):
     if self._skip_a_class_check:
         return False
@@ -51,6 +59,11 @@ def handle_custom_tags(self, tag, attrs, start):
         self._class_stack.append(attrs)
     else:
         attrs = self._class_stack.pop()
+    if WALTZ_LITERAL_CLASS in attrs.get('class', "").split(" "):
+        if start:
+            self.out("\n"+make_html_tag(tag, attrs))
+        else:
+            self.out(f"\n</{tag}>")
     if tag in ['i'] and not self.ignore_emphasis:
         if 'class' in attrs:
             icon = attrs['class']
@@ -146,6 +159,8 @@ def inject_yaml(markdown, yaml_data):
 def h2m(html, waltz_front_matter=None):
     if not html and not waltz_front_matter:
         return ""
+    if not html:
+        html = ""
     # Handle front matter
     if waltz_front_matter is None:
         waltz_front_matter = {}
@@ -204,7 +219,7 @@ markdowner = Markdown(extensions=[
 ], extension_configs={
     'codehilite': {
         'noclasses': True,
-        'linenums': True,
+        'linenums': False,
 }})
 
 
