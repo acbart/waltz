@@ -51,7 +51,7 @@ class Assignment(CanvasResource):
         result['settings']['secrecy'] = CommentedMap()
         result['settings']['secrecy']['anonymize_students'] = raw_data['anonymize_students']
         result['settings']['secrecy']['anonymous_grading'] = raw_data['anonymous_grading']
-        return h2m(raw_data['description'], result), []
+        return h2m(raw_data.get('description', ''), result), []
 
     @classmethod
     def upload(cls, registry: Registry, args):
@@ -71,7 +71,7 @@ class Assignment(CanvasResource):
         return {
             'assignment[notify_of_update]': 'false',
             'assignment[name]': data['name'],
-            'assignment[description]': data['description'],
+            'assignment[description]': data.get('description', ''),
             # 'assignment[submission_types][]': ','.join(self.submission_types),
             # 'assignment[allowed_extensions][]': ','.join(self.submission_types),
             'assignment[points_possible]': data['points_possible'],
