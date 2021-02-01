@@ -19,6 +19,30 @@ class GSAssignment():
         self.course = course
         self.questions = []
 
+    def configure(self, data):
+        cid = self.course.cid
+        aid = self.aid
+        base_url = f"https://www.gradescope.com/courses/{cid}/assignments/{aid}/"
+
+        configure_resp = self.course.session.get(base_url+"configure_autograder")
+        parsed_configure_resp = BeautifulSoup(configure_resp.text, 'html.parser')
+
+        create_modal = parsed_configure_resp.find('form', class_='js-autograderForm')
+        authenticity_token = create_modal.find('input', attrs={'name': 'authenticity_token'}).get('value')
+
+        a_data = {
+            "utf8": "✓",
+            "authenticity_token": authenticity_token,
+            "_method": "patch",
+            "configuration": "zip",
+            "assignment[image_name]": "gradescope/autograders:Blank"
+        }
+        files = {
+            "autograder_zip": ("autograder.zip", data, "application/x-zip-compressed")
+        }
+        upload_resp = self.course.session.post(base_url, data=a_data, files=files)
+        print(upload_resp)
+
     def add_question(self, title, weight, crop = None, content = [], parent_id = None):
         new_q_data = [q.to_patch() for q in self.questions]
         new_crop = crop if crop else [{'x1': 10, 'x2': 91, 'y1': 73, 'y2': 93, 'page_number': 1}]
