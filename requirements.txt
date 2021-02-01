@@ -11,3 +11,4 @@ canvasapi
 tabulate
 natsort
 pygments
+beautifulsoup4
