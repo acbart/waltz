@@ -163,10 +163,17 @@ class Local(Service):
                       check_front_matter=False, top_directories=None,
                       folder_file=None, extension='.md', args=None):
         # Get the path to the file
-        if hasattr(args, 'filename') and args.filename and os.path.exists(args.filename):
-            safe_filename = args.filename
-            args.title = self.get_title(args.filename)
-        else:
+        starting_destination = ""
+        if hasattr(args, 'destination') and args.destination and os.path.exists(args.destination):
+            starting_destination = args.destination
+        safe_filename = None
+        if hasattr(args, 'filename') and args.filename:
+            potential_path = os.path.join(starting_destination, args.filename)
+            if os.path.exists(potential_path):
+                safe_filename = potential_path
+                args.title = self.get_title(args.filename)
+        # Okay, the file didn't exist, let's just make it.
+        if not safe_filename:
             safe_filename = self.make_markdown_filename(title, extension=extension,
                                                         folder_file=folder_file)
         # Is the exact filepath here?
