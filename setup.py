@@ -13,7 +13,7 @@ setup(name='lms-waltz',
               'waltz = waltz.__main__:main'
           ]
       },
-      version='0.2.4',
+      version='0.2.5',
       description='Coordinate resources between an LMS like Canvas and a local directory',
       keywords= 'lms learning management system curriculum curricular resources',
       long_description=long_description,
@@ -26,7 +26,9 @@ setup(name='lms-waltz',
           'dev': dev_requires
       },
       packages=['waltz', 'waltz.tools', 'waltz.services',
-                'waltz.services.blockpy', 'waltz.services.canvas', 'waltz.services.local',
+                'waltz.services.blockpy', 'waltz.services.canvas', 'waltz.services.gradescope',
+                'waltz.services.gradescope.pyscope',
+                'waltz.services.local',
                 'waltz.resources', 'waltz.resources.quizzes'],
       classifiers=[
           "Development Status :: 4 - Beta",
