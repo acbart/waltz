@@ -104,7 +104,7 @@ class QuizQuestion(CanvasResource):
             'question_name': data['title'],
             'question_type': data['type'],
             'question_text': text,
-            'points_possible': data['points'],
+            'points_possible': data.get('points', '1.0'),
             'correct_comments_html': m2h(comments.get("if_correct", "")),
             'incorrect_comments_html': m2h(comments.get("if_incorrect", "")),
             'neutral_comments_html': m2h(comments.get("always", "")),
