@@ -32,6 +32,9 @@
 ... Modifies web version
 > waltz diff f19_cisc108 "Reference- String Methods"
 
+> waltz pull canvas page "Lesson 10- Runtime Analysis" --format auto|html|md
+> waltz pull gradescope assignment "Lesson 10- Runtime Analysis" --format peml
+
 """
 import argparse
 import waltz.action as actions
