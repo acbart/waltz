@@ -15,6 +15,7 @@ from waltz.tools.utilities import get_files_last_update, from_canvas_date, to_fr
 # TODO: Sophisticated links
 # TODO: File system handling
 
+
 class Page(CanvasResource):
     name = "page"
     name_plural = "pages"
