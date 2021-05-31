@@ -1,3 +1,10 @@
+"""
+DEPRECATED.
+
+This is essentially the version 1 of Waltz. I've been keeping it around for quick reference, but it's time to delete
+this. We have version control, after all.
+"""
+
 import gzip
 import json
 from pathlib import Path
