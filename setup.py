@@ -26,8 +26,9 @@ setup(name='lms-waltz',
           'dev': dev_requires
       },
       packages=['waltz', 'waltz.tools', 'waltz.services',
-                'waltz.services.blockpy', 'waltz.services.canvas', 'waltz.services.gradescope',
-                'waltz.services.gradescope.pyscope',
+                'waltz.services.blockpy', 'waltz.services.canvas',
+                'waltz.services.gradescope', 'waltz.services.gradescope.pyscope',
+                'waltz.services.peml',
                 'waltz.services.local',
                 'waltz.resources', 'waltz.resources.quizzes'],
       classifiers=[
