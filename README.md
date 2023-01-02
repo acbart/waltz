@@ -4,7 +4,7 @@ A software system for synchronizing curricular materials between a
 Learning Management Systems (LMS) and your local filesystem.
 
 Major features include:
-* Pull and push data between an LSM and the file system
+* Pull and push data between an LMS and the file system
 * Lightweight, friendly Markdown-based format for local resources
 * Diffing of local and remote content
 * List and search for remote resources
