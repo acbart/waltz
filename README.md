@@ -11,7 +11,8 @@ Major features include:
 
 We aim to support the following LMSes:
 * Canvas (pages, assignments, quizzes)
-* BlockPy (assignment, groups) <- In-progress
+* BlockPy (assignment, groups) <- beta
+* GradeScope (programming assignments) <- beta
 
 # Installation
 
