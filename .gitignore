@@ -5,6 +5,7 @@ courses/
 tests/*.db
 tests/.waltz.db
 tests/secret_testing_data.json
+docs/potential_logo.png
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

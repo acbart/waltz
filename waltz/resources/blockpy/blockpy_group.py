@@ -10,34 +10,14 @@ from waltz.registry import Registry
 from waltz.resources.resource import Resource
 from waltz.tools.html_markdown_utilities import add_to_front_matter, extract_front_matter, hide_data_in_html, m2h
 from waltz.tools.utilities import blockpy_string_to_datetime, to_friendly_date_from_datetime
+from waltz.resources.blockpy.blockpy_resource import BlockPyResource
 
 
-class BlockPyGroup(Resource):
+class BlockPyGroup(BlockPyResource):
     name = "blockpy_group"
     name_plural = "blockpy_groups"
     category_names = ["blockpy_group", "blockpy_groups"]
     folder_file = 'index'
-
-    @classmethod
-    def decode(cls, registry: Registry, args):
-        local = registry.get_service(args.local_service, 'local')
-        # TODO: use disambiguate
-        if args.all:
-            raw_resources = registry.find_all_resources(service=args.service, category=cls.name)
-        else:
-            raw_resources = [registry.find_resource(title=args.title, service=args.service,
-                                                    category=cls.name)]
-        for raw_resource in raw_resources:
-            try:
-                destination_path = local.find_existing(registry, raw_resource.title, folder_file='index')
-            except FileNotFoundError:
-                destination_path = local.make_markdown_filename(raw_resource.title, folder_file='index')
-                if args.destination:
-                    destination_path = os.path.join(args.destination, destination_path)
-            decoded_markdown, extra_files = cls.decode_json(registry, raw_resource.data, args)
-            local.write(destination_path, decoded_markdown)
-            for path, data in extra_files:
-                local.write(path, data)
 
     @classmethod
     def decode_json(cls, registry: Registry, data: str, args):

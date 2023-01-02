@@ -33,7 +33,7 @@ class NumericalQuestion(QuizQuestion):
     def encode_json_raw(cls, registry: Registry, data, args):
         result = QuizQuestion.encode_question_common(registry, data, args)
         result['answers'] = []
-        for answer in data['answers']:
+        for answer in data.get('answers', []):
             numerical_answer_type = ('exact_answer' if 'exact' in answer else
                                      'range_answer' if 'start' in answer else
                                      'precision_answer')

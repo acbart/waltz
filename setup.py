@@ -30,7 +30,7 @@ setup(name='lms-waltz',
                 'waltz.services.gradescope', 'waltz.services.gradescope.pyscope',
                 'waltz.services.peml',
                 'waltz.services.local',
-                'waltz.resources', 'waltz.resources.quizzes'],
+                'waltz.resources', 'waltz.resources.quizzes', 'waltz.resources.blockpy'],
       classifiers=[
           "Development Status :: 4 - Beta",
           "Environment :: Console",

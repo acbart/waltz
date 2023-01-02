@@ -1,5 +1,6 @@
 from json import JSONDecodeError
 
+import warnings
 import requests
 
 from waltz.exceptions import WaltzException
@@ -27,7 +28,9 @@ class BlockPyAPI:
             json = {}
         json['email'] = self.email
         json['password'] = self.password
-        response = verb(url, json=json, verify=not self.allow_insecure)
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', message='Unverified HTTPS request')
+            response = verb(url, json=json, verify=not self.allow_insecure)
         if response.status_code == 200:
             try:
                 return response.json()

@@ -15,17 +15,17 @@ from waltz.resources.resource import Resource
 from waltz.tools.html_markdown_utilities import hide_data_in_html, m2h, add_to_front_matter
 from waltz.tools.utilities import get_files_last_update, from_canvas_date, to_friendly_date_from_datetime, start_file, \
     blockpy_string_to_datetime, from_friendly_date
+from waltz.resources.blockpy.blockpy_resource import BlockPyResource
 
 
 # TODO: Template support
 # TODO: Sophisticated links
 # TODO: File system handling
 
-class Problem(Resource):
+class Problem(BlockPyResource):
     name = "problem"
     name_plural = "problems"
     category_names = ['problem', 'problems', 'coding_problem', 'coding_problems']
-    default_service = 'blockpy'
     folder_file = 'index'
 
     @classmethod
@@ -36,9 +36,20 @@ class Problem(Resource):
         return assignments[0] if assignments else None
 
     @classmethod
+    def verify_bundle(cls, bundle):
+        if 'success' in bundle:
+            if bundle['success']:
+                return True
+            if 'message' in bundle:
+                raise Exception(f"Invalid BlockPy Bundle: {bundle['message']}\n{bundle!r}")
+            else:
+                raise Exception(f"Invalid BlockPy Bundle: (no message)\n{bundle!r}")
+
+    @classmethod
     def download(cls, registry: Registry, args):
         blockpy = registry.get_service(args.service, "blockpy")
         bundle = blockpy.api.get('export/', json={'assignment_url': args.title})
+        cls.verify_bundle(bundle)
         potentials = bundle['assignments']
         # Assignments
         if len(potentials) > 1:
@@ -59,29 +70,6 @@ class Problem(Resource):
             'assignments': [full_data]
         })
 
-    @classmethod
-    def decode(cls, registry: Registry, args):
-        local = registry.get_service(args.local_service, 'local')
-        # TODO: use disambiguate
-        if args.all:
-            raw_resources = registry.find_all_resources(service=args.service, category=cls.name)
-        else:
-            raw_resources = [registry.find_resource(title=args.title,
-                                                    service=args.service, category=cls.name)]
-        for raw_resource in raw_resources:
-            try:
-                destination_path = local.find_existing(registry, raw_resource.title,
-                                                       folder_file=cls.folder_file)
-            except FileNotFoundError:
-                destination_path = local.make_markdown_filename(raw_resource.title,
-                                                                folder_file=cls.folder_file)
-                if args.destination:
-                    destination_path = os.path.join(args.destination, destination_path)
-            decoded_markdown, extra_files = cls.decode_json(registry, raw_resource.data, args)
-            local.write(destination_path, decoded_markdown)
-            for path, data in extra_files:
-                local.write(path, data)
-
     SPECIAL_INSTRUCTOR_FILES = {
         '?': 'hidden but accessible files',
         '!': 'instructor only files',
@@ -100,12 +88,15 @@ class Problem(Resource):
         result['display title'] = raw_data['name']
         result['resource'] = cls.name
         result['type'] = raw_data['type']
-        if raw_data['reviewed']:
+        if raw_data.get('reviewed'):
             result['human reviewed'] = raw_data['reviewed']
         result['visibility'] = CommentedMap()
         result['visibility']['hide status'] = raw_data['hidden']
+        if not raw_data.get('reviewed') and 'human reviewed' in raw_data:
+            result['visibility']['human reviewed'] = raw_data['human reviewed']
+        result['visibility']['subordinate'] = raw_data.get('subordinate', False)
         result['visibility']['publicly indexed'] = raw_data['public']
-        if raw_data['ip_ranges']:
+        if raw_data.get('ip_ranges'):
             result['visibility']['ip ranges'] = raw_data['ip_ranges']
         result['additional settings'] = json.loads(raw_data['settings'] or "{}")
         if raw_data['forked_id']:
@@ -134,42 +125,92 @@ class Problem(Resource):
         result['files']['read-only files'] = []
         # Check if index file exists; if so, that's our directory target
         local = registry.get_service(args.local_service, 'local')
-        try:
-            index_path = local.find_existing(registry, files_path,
-                                                   folder_file=cls.folder_file)
-            files_path = os.path.dirname(index_path)
-        except FileNotFoundError:
-            pass
-        if hasattr(args, 'destination') and args.destination:
-            files_path = os.path.join(args.destination, files_path)
-        # Then build up the extra instructor files
-        extra_files = [
-            (os.path.join(files_path, "on_run.py"), raw_data['on_run']),
-            (os.path.join(files_path, "starting_code.py"), raw_data['starting_code'])
-        ]
-        if raw_data['on_change']:
-            extra_files.append((os.path.join(files_path, "on_change.py"), raw_data['on_change']))
-        if raw_data['on_eval']:
-            extra_files.append((os.path.join(files_path, "on_eval.py"), raw_data['on_eval']))
-        if raw_data['extra_instructor_files']:
-            # TODO: Create special manifest file for listing special file types (e.g., "&" and "?")
-            extra_instructor_files = json.loads(raw_data['extra_instructor_files'])
-            for eif_filename, eif_contents in extra_instructor_files.items():
-                if eif_filename[0] in "?!^&*":
-                    new_path = os.path.join(files_path, eif_filename[1:])
-                    extra_files.append((new_path, eif_contents))
-                    special_file_type = cls.SPECIAL_INSTRUCTOR_FILES[eif_filename[0]]
-                    result['files'][special_file_type].append(new_path)
+        if args.combine:
+            body, extra_files = cls.decode_extra_files_by_type(result, raw_data)
+        else:
+            body = raw_data['instructions']
+            try:
+                index_path = local.find_existing(registry, files_path,
+                                                 folder_file=cls.folder_file)
+                files_path = os.path.dirname(index_path)
+                #print(">>>", files_path)
+            except FileNotFoundError:
+                pass
+            #if hasattr(args, 'destination') and args.destination:
+            #    files_path = os.path.join(args.destination, files_path)
+            # Then build up the extra instructor files
+            extra_files = [
+                (os.path.join(files_path, "on_run.py"), raw_data['on_run']),
+                (os.path.join(files_path, "starting_code.py"), raw_data['starting_code'])
+            ]
+            if raw_data['on_change']:
+                extra_files.append((os.path.join(files_path, "on_change.py"), raw_data['on_change']))
+            if raw_data['on_eval']:
+                extra_files.append((os.path.join(files_path, "on_eval.py"), raw_data['on_eval']))
+            if raw_data['extra_instructor_files']:
+                # TODO: Create special manifest file for listing special file types (e.g., "&" and "?")
+                extra_instructor_files = json.loads(raw_data['extra_instructor_files'])
+                for eif_filename, eif_contents in extra_instructor_files.items():
+                    if eif_filename[0] in "?!^&*":
+                        new_path = os.path.join(files_path, eif_filename[1:])
+                        extra_files.append((new_path, eif_contents))
+                        special_file_type = cls.SPECIAL_INSTRUCTOR_FILES[eif_filename[0]]
+                        result['files'][special_file_type].append(new_path)
         # Put instructions up front and return the result
-        return add_to_front_matter(raw_data['instructions'], result), extra_files
+        return add_to_front_matter(body, result), extra_files
+
+    BLOCKPY_QUIZ_FEEDBACK_KEYWORDS = ['correct', 'wrong', 'feedback', 'wrong_any', 'correct_exact', 'correct_regex']
 
     @classmethod
-    def encode(cls, registry: Registry, args):
-        local = registry.get_service(args.local_service, 'local')
-        source_path = local.find_existing(registry, args.title, folder_file=cls.folder_file)
-        decoded_markdown = local.read(source_path)
-        data = cls.encode_json(registry, decoded_markdown, args)
-        registry.store_resource(args.service, cls.name, args.title, "", data)
+    def decode_extra_files_by_type(cls, result, raw_data):
+        body = raw_data['instructions']
+        if raw_data['type'] == 'reading':
+            return body, []
+        elif raw_data['type'] == 'quiz':
+            try:
+                quiz_content = json.loads(body)
+            except Exception as error:
+                print("JSON Decoding Error in Instructions of:", raw_data['url'])
+                return body, []
+            try:
+                quiz_answers = json.loads(raw_data['on_run']).get('questions', {})
+            except Exception as error:
+                print("JSON Decoding Error in Quiz Feedback of:", raw_data['url'])
+                return body, []
+            for question_id, question in quiz_content.get('questions', {}).items():
+                quiz_answer = quiz_answers.get(question_id, {})
+                for potential in cls.BLOCKPY_QUIZ_FEEDBACK_KEYWORDS:
+                    if potential in quiz_answer:
+                        question[potential] = quiz_answer[potential]
+            body = json.dumps(quiz_content, indent=2)
+            return body, []
+        elif raw_data['type'] == 'blockpy':
+            return body, []
+
+    @classmethod
+    def encode_extra_files_by_type(cls, waltz, body):
+        extra_files = {
+            'on_run': "", 'starting_code': "", 'on_change': "", 'on_eval': ""
+        }
+        if waltz['type'] == 'reading':
+            pass
+        elif waltz['type'] == 'quiz':
+            try:
+                combined_quiz_content = json.loads(body)
+            except Exception as error:
+                print("JSON Decoding Error in Instructions of:", waltz['title'])
+                raise error
+            answers = {'questions': {}}
+            for question_id, question in combined_quiz_content.get('questions', {}).items():
+                answer = answers['questions'][question_id] = {}
+                for potential in cls.BLOCKPY_QUIZ_FEEDBACK_KEYWORDS:
+                    if potential in question:
+                        answer[potential] = question.pop(potential)
+            body = json.dumps(combined_quiz_content, indent=2)
+            extra_files['on_run'] = json.dumps(answers)
+        elif waltz['type'] == 'blockpy':
+            pass
+        return body, extra_files
 
     @classmethod
     def encode_json(cls, registry: Registry, data: str, args):
@@ -180,29 +221,32 @@ class Problem(Resource):
         identity = waltz.get('identity', {})
         files = waltz.get('files', {})
         # Grab any extra files
-        extra_files = {}
-        local = registry.get_service(args.local_service, 'local')
-        for py_filename in ['on_run', 'starting_code', 'on_change',
-                            'on_eval']:
-            try:
-                source_path = local.find_existing(registry, args.title,
-                                                  folder_file=py_filename,
-                                                  extension='.py')
-            except FileNotFoundError:
-                extra_files[py_filename] = ""
-                continue
-            extra_files[py_filename] = local.read(source_path)
-        collected = {}
-        for special, prepend in cls.SPECIAL_INSTRUCTOR_FILES_R.items():
-            for file in files.get(special, []):
-                source_path = local.find_existing(registry, args.title,
-                                                  folder_file=file,
-                                                  extension="")
-                collected[prepend+file] = local.read(source_path)
-        if collected:
-            extra_files['extra_instructor_files'] = json.dumps(collected)
+        if args.combine:
+            body, extra_files = cls.encode_extra_files_by_type(waltz, body)
         else:
-            extra_files['extra_instructor_files'] = ""
+            extra_files = {}
+            local = registry.get_service(args.local_service, 'local')
+            for py_filename in ['on_run', 'starting_code', 'on_change',
+                                'on_eval']:
+                try:
+                    source_path = local.find_existing(registry, args.title,
+                                                      folder_file=py_filename,
+                                                      extension='.py')
+                except FileNotFoundError:
+                    extra_files[py_filename] = ""
+                    continue
+                extra_files[py_filename] = local.read(source_path)
+            collected = {}
+            for special, prepend in cls.SPECIAL_INSTRUCTOR_FILES_R.items():
+                for file in files.get(special, []):
+                    source_path = local.find_existing(registry, args.title,
+                                                      folder_file=file,
+                                                      extension="")
+                    collected[prepend+file] = local.read(source_path)
+            if collected:
+                extra_files['extra_instructor_files'] = json.dumps(collected)
+            else:
+                extra_files['extra_instructor_files'] = ""
 
         # And generate the rest of the JSON
         return json.dumps({
@@ -210,12 +254,13 @@ class Problem(Resource):
             'url': waltz['title'],
             'name': waltz['display title'],
             'type': waltz['type'],
-            'reviewed': waltz.get('human reviewed', False),
-            'hidden': visibility.get('hide status'),
-            'public': visibility.get('publicly indexed'),
+            'subordinate': waltz.get('subordinate', False) or False,
+            'reviewed': waltz.get('human reviewed', False) or False,
+            'hidden': visibility.get('hide status', False) or False,
+            'public': visibility.get('publicly indexed', False) or False,
             'ip_ranges': visibility.get('ip ranges', ""),
             'settings': json.dumps(waltz['additional settings'])
-                        if waltz['additional settings'] else None,
+                        if waltz.get('additional settings') else None,
             'forked_id': forked.get('id', None),
             'forked_version': forked.get('version', None),
             'owner_id': identity['owner id'],

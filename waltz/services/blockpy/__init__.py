@@ -1,6 +1,6 @@
-from waltz.resources.blockpy_group import BlockPyGroup
-from waltz.resources.problem import Problem
-from waltz.resources.blockpy_course import BlockPyCourse
+from waltz.resources.blockpy.blockpy_group import BlockPyGroup
+from waltz.resources.blockpy.problem import Problem
+from waltz.resources.blockpy.blockpy_course import BlockPyCourse
 from waltz.defaults import register_service_type
 from waltz.services.blockpy.blockpy import BlockPy
 

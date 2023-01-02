@@ -139,6 +139,8 @@ def parse_command_line(args):
     parser_encode.add_argument("--local_service", type=str, help="The specific local service to use as an override.")
     parser_encode.add_argument("--banks", nargs="*", type=str,
                                help="The question bank folders to check.")
+    parser_encode.add_argument("--combine", "-c", action='store_true', default=False,
+                               help="Whether to combine all subresources into a single file.")
     add_id_and_url(parser_encode)
     parser_encode.set_defaults(func=actions.Encode)
 
@@ -168,6 +170,8 @@ def parse_command_line(args):
     parser_push.add_argument("--local_service", type=str, help="The specific local service to use as an override.")
     parser_push.add_argument("--banks", nargs="*", type=str,
                                help="The question bank folders to check.")
+    parser_push.add_argument("--combine", "-c", action='store_true', default=False,
+                               help="Whether to combine all subresources into a single file.")
     add_id_and_url(parser_push)
     parser_push.set_defaults(func=actions.Push)
 

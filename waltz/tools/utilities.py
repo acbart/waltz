@@ -1,6 +1,8 @@
 import os
 import re
 from datetime import datetime
+from types import SimpleNamespace
+
 from dateutil import tz, parser
 from textwrap import indent
 import pathlib
@@ -136,3 +138,23 @@ def find_all_files(path, trail=None):
         else:
             yield os.path.join(*trail, filename)
 
+
+def replace_namespace(original, **kwargs):
+    new_version = SimpleNamespace(**vars(original))
+    for key, value in kwargs.items():
+        setattr(new_version, key, value)
+    return new_version
+
+
+_OS_WALK_CACHE = {}
+
+
+def os_walk_cache(path):
+    if path in _OS_WALK_CACHE:
+        for result in _OS_WALK_CACHE[path]:
+            yield result
+    else:
+        _OS_WALK_CACHE[path] = []
+        for result in os.walk(path):
+            _OS_WALK_CACHE[path].append(result)
+            yield result

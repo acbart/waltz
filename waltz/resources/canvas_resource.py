@@ -114,17 +114,17 @@ class CanvasResource(Resource):
             raw_resources = registry.find_all_resources(service=args.service, category=cls.name)
         else:
             raw_resources = [registry.find_resource(title=args.title, service=args.service, category=cls.name)]
+        folder = None if args.combine else cls.folder_file
         for raw_resource in raw_resources:
+            destination_path = local.find_or_new(registry, raw_resource, folder, args)
             try:
-                destination_path = local.find_existing(registry, raw_resource.title, args=args, folder_file=cls.folder_file)
-            except FileNotFoundError:
-                destination_path = local.make_markdown_filename(raw_resource.title, folder_file=cls.folder_file)
-                if args.destination:
-                    destination_path = os.path.join(args.destination, destination_path)
-            decoded_markdown, extra_files = cls.decode_json(registry, raw_resource.data, args)
-            local.write(destination_path, decoded_markdown)
-            for path, data in extra_files:
-                local.write(path, data)
+                decoded_markdown, extra_files = cls.decode_json(registry, raw_resource.data, args)
+                local.write(destination_path, decoded_markdown)
+                for path, data in extra_files:
+                    local.write(path, data)
+            except Exception as e:
+                print(e)
+                print("Failed on", raw_resource.title, "; Skipping...")
 
     @classmethod
     def encode(cls, registry: Registry, args):

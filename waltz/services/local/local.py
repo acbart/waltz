@@ -8,7 +8,7 @@ from waltz.exceptions import WaltzException, WaltzAmbiguousResource
 from waltz.resources.raw import RawResource
 from waltz.services.service import Service
 from waltz.tools import yaml, extract_front_matter
-from waltz.tools.utilities import make_safe_filename, ensure_dir, make_end_path, all_path_parts_match
+from waltz.tools.utilities import make_safe_filename, ensure_dir, make_end_path, all_path_parts_match, os_walk_cache
 
 
 class Local(Service):
@@ -121,7 +121,7 @@ class Local(Service):
         else:
             category_names = None
         rows = []
-        for root, dirs, files in os.walk(self.path):
+        for root, dirs, files in os_walk_cache(self.path):
             for name in natsorted(files):
                 if name.endswith(".md"):
                     path = os.path.join(root, name)
@@ -172,10 +172,10 @@ class Local(Service):
             if os.path.exists(potential_path):
                 safe_filename = potential_path
                 args.title = self.get_title(args.filename)
-        # Okay, the file didn't exist, let's just make it.
+        # Okay, the file didn't exist, let's just pretend it does and make up the filename
         if not safe_filename:
             safe_filename = self.make_markdown_filename(title, extension=extension,
-                                                        folder_file=folder_file)
+                                                        folder_file=None if getattr(args, 'combine', False) else folder_file)
         # Is the exact filepath here?
         if os.path.exists(safe_filename):
             return safe_filename
@@ -188,7 +188,7 @@ class Local(Service):
                 top_directories = [registry.search_up_for_waltz_registry('./')]
             potential_files = []
             for top_directory in top_directories:
-                for root, dirs, files in os.walk(top_directory):
+                for root, dirs, files in os_walk_cache(top_directory):
                     for file in files:
                         potential_file = os.path.join(root, file)
                         if all_path_parts_match(potential_file, safe_filename):
@@ -205,6 +205,15 @@ class Local(Service):
                 raise FileNotFoundError("No resource named {} found.".format(safe_filename))
             safe_filename, = potential_files
         return safe_filename
+
+    def find_or_new(self, registry, raw_resource, folder_file, args):
+        try:
+            destination_path = self.find_existing(registry, raw_resource.title, args=args, folder_file=folder_file)
+        except FileNotFoundError:
+            destination_path = self.make_markdown_filename(raw_resource.title, folder_file=folder_file)
+            if args.destination:
+                destination_path = os.path.join(args.destination, destination_path)
+        return destination_path
 
     def write(self, destination_path, body):
         ensure_dir(destination_path)

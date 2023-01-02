@@ -152,6 +152,14 @@ class Resource:
         raise NotImplementedError(repr(data))
 
     @classmethod
+    def decode(cls, registry: Registry, args):
+        raise NotImplementedError("The decode command is not available for this resource category.")
+
+    @classmethod
+    def encode(cls, registry: Registry, args):
+        raise NotImplementedError("The encode command is not available for this resource category.")
+
+    @classmethod
     def find(cls, service: Service, data):
         raise NotImplementedError(repr(data))
 
