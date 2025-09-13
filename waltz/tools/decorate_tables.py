@@ -15,13 +15,13 @@ class DecorateTablesProcessor(Treeprocessor):
 
 
 class TableDecoratorExtension(Extension):
-    def extendMarkdown(self, md, md_globals):
+    def extendMarkdown(self, md, md_globals=None):
         # Register instance of 'mypattern' with a priority of 175
         md.registerExtension(self)
         self.processor = DecorateTablesProcessor()
         self.processor.md = md
         self.processor.config = self.getConfigs()
-        md.treeprocessors.add('decorate_tables', self.processor, '>toc')
+        md.treeprocessors.register(self.processor, 'decorate_tables', 175)
 
 
 # http://pythonhosted.org/Markdown/extensions/api.html#makeextension
