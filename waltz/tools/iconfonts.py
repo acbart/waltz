@@ -145,9 +145,9 @@ class IconFontsExtension(markdown.Extension):
 
 	def add_inline(self, md, name, klass, re, config):
 		pattern = klass(re, md, config)
-		md.inlinePatterns.add(name, pattern, "<reference")
+		md.inlinePatterns.register(pattern, name, 175)
 
-	def extendMarkdown(self, md, md_globals):
+	def extendMarkdown(self, md, md_globals=None):
 		config = self.getConfigs()
 		#print("config" + str(config))
 
